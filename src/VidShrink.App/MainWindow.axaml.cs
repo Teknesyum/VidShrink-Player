@@ -243,6 +243,7 @@ public partial class MainWindow : Window
         Tabs.SelectionChanged += (_, _) => KaydediciSekmesiSecildi();
         Tabs.SelectionChanged += (_, _) => DuzenleyiciSekmesiSecildi();
         Tabs.SelectionChanged += (_, _) => OynaticiSekmesiSecildi();
+        KompaktIzle();
 
 
         if (OperatingSystem.IsMacOS())
@@ -751,6 +752,7 @@ public partial class MainWindow : Window
         _cts?.Cancel();
         // Kaynak burada kapanır: pencere kapanırken öksüz ffmpeg kalmaz.
         _preview?.Dispose();
+        KompaktKapanis();
         PencereKonumunuKaydet();
         base.OnClosing(e);
     }

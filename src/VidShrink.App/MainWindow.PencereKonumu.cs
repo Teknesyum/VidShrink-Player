@@ -29,7 +29,7 @@ public partial class MainWindow
 
     private void NormalKonumuAl()
     {
-        if (WindowState != WindowState.Normal || _kip is { Kucuk: true }) return;
+        if (WindowState != WindowState.Normal || _kip is { Kucuk: true } || _kompakt is { Acik: true }) return;
         var boy = IsVisible ? ClientSize : new Size(Width, Height);
         if (!double.IsFinite(boy.Width) || !double.IsFinite(boy.Height) || boy.Width <= 0 || boy.Height <= 0) return;
         _normalKonum = new PencereKonumu(Position.X, Position.Y, boy.Width, boy.Height, false, null);
