@@ -74,7 +74,9 @@ internal partial class RecorderView
         ChkOpenFolder.IsVisible = advanced;
         ChkResultCard.IsVisible = advanced;
         ApplyReplayVisibility();
+        ApplySade();
         KartYerlesimi();
+        RaiseLevelChanged();
     }
 
     private bool _darDuvar;

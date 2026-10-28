@@ -128,6 +128,7 @@ internal partial class RecorderView
     {
         TxtMaskCount.Text = Say("recorder.mask.count", _settings.PrivacyMasks.Count);
         BtnClearMasks.IsEnabled = _settings.PrivacyMasks.Count > 0;
+        ApplySade();
     }
 
     /// <summary>Kutulardaki bölge; okunamıyorsa ya da kullanılamayacak kadar küçükse <c>null</c>.</summary>

@@ -65,6 +65,7 @@
   yalnız MB `-fs`), boyut sınırı parçalara kalanla bölünür, MP4/MOV her zaman Matroska'ya (`<ad>.yakalama.mkv`) yakalanıp
   durunca `-c copy -movflags +faststart` ile teslim kabına çevrilir; "bitince klasörü aç" yalnız kutu açıkken, F10 iptal kaydı durdurup dosyayı
   siler. Canlı kollar `[KayitFact]`, 640x480 bölge ≤5 sn. Kanıt `.calisma/paket-2/`.
+- `KaydediciSadeTests.cs` — sade görünüm yalnız hedef düğmelerini gösterir, Gelişmiş zamanlama ve hedef türünü açar; kompakt pencerenin hedef dikdörtgeni ve yumuşatma eğrisi
 - `KaydediciSeciciTests.cs` — paket 2, hedef seçiciler: sürükleme çift boyuta iner, oran kilidi ekranda kalır
   (`RegionDraw`); sahte `DrawRegion` ile çizilen bölge kutulara, json'a ve `-offset_x/-video_size`'a geçer, Esc
   vazgeçer; çizim penceresi gerçek açılıp masaüstünü kaplar. Hazır boyut, pencere seçici (sahte `ListWindows`,

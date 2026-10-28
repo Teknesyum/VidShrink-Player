@@ -82,6 +82,7 @@ internal partial class RecorderView : UserControl
         InitImlec();
         RefreshSerit();
         InitKalicilik();
+        InitSade();
     }
 
     /// <summary>Sayfadaki hata satırı. Ölçüm kendi gördüğünü okuyabilsin diye açık.</summary>

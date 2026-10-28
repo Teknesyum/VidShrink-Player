@@ -13,7 +13,8 @@ namespace VidShrink.App.Recorder;
 
 internal partial class RecorderRegionPicker : Window
 {
-    private readonly TaskCompletionSource<PixelRect?> _done = new();
+    private readonly TaskCompletionSource<RecorderPick?> _done = new();
+    internal Task<RecorderPick?> Result => _done.Task;
     private readonly double? _ratio;
     private PixelRect _desktop;
     private PixelPoint? _start;
@@ -26,7 +27,7 @@ internal partial class RecorderRegionPicker : Window
     {
     }
 
-    internal RecorderRegionPicker(double? ratio)
+    internal RecorderRegionPicker(double? ratio, bool targets = false)
     {
         _ratio = ratio;
         InitializeComponent();
@@ -41,18 +42,24 @@ internal partial class RecorderRegionPicker : Window
             _done.TrySetResult(null);
             Close();
         };
+        InitModes(targets);
     }
 
-    internal Task<PixelRect?> Result => _done.Task;
+    internal Task<RecorderPick?> Picked => _done.Task;
 
     internal static async Task<PixelRect?> PickAsync(double? ratio)
+        => await ShowAsync(ratio, targets: false) is { Kind: RecorderTargetKind.Region } pick ? pick.Rect : null;
+
+    internal static Task<RecorderPick?> PickTargetAsync(double? ratio) => ShowAsync(ratio, targets: true);
+
+    private static async Task<RecorderPick?> ShowAsync(double? ratio, bool targets)
     {
         var frozen = await Freeze(CancellationToken.None);
-        var picker = new RecorderRegionPicker(ratio) { Frozen = frozen };
+        var picker = new RecorderRegionPicker(ratio, targets) { Frozen = frozen };
         picker.Closed += (_, _) => frozen?.Dispose();
         picker.Show();
         picker.Activate();
-        return await picker.Result;
+        return await picker.Picked;
     }
 
     private void Cover()
@@ -61,6 +68,7 @@ internal partial class RecorderRegionPicker : Window
         ApplyFrozen();
         Scrim.Width = Width;
         Scrim.Height = Height;
+        PlaceModeBar();
     }
 
     /// <summary>Pencereyi bütün masaüstünü kaplayacak yere ve boya koyar; masaüstünü piksel olarak döndürür.</summary>
@@ -100,6 +108,14 @@ internal partial class RecorderRegionPicker : Window
     private void OnPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (Mode != PickMode.Region)
+        {
+            if (TargetAt(ScreenPoint(e)) is not { } pick) return;
+            _done.TrySetResult(pick);
+            Close();
+            return;
+        }
+
         _targets = SnapTargets(this);
         _start = RegionSnap.Point(ScreenPoint(e), _targets, Pixels("RecorderRegionSnap"), SnapOff(e)).Point;
         e.Pointer.Capture(Surface);
@@ -108,6 +124,12 @@ internal partial class RecorderRegionPicker : Window
 
     private void OnMoved(object? sender, PointerEventArgs e)
     {
+        if (Mode != PickMode.Region)
+        {
+            Hover(ScreenPoint(e));
+            return;
+        }
+
         if (_start is null) return;
         SnapOff(e);
         Draw(ScreenPoint(e));
@@ -123,7 +145,7 @@ internal partial class RecorderRegionPicker : Window
         ShowSnapLines();
         e.Pointer.Capture(null);
         if (!RegionDraw.Usable(_current)) return;
-        _done.TrySetResult(_current);
+        _done.TrySetResult(new RecorderPick(RecorderTargetKind.Region, _current));
         Close();
     }
 
@@ -134,14 +156,19 @@ internal partial class RecorderRegionPicker : Window
         _current = RegionDraw.FromDrag(start, snap.Point, _ratio, _desktop);
         _snapLines = RegionSnap.Lines(_current, snap.X, snap.Y, Pixels("RecorderRegionSnapLine"));
         ShowSnapLines();
-        var topLeft = this.PointToClient(_current.Position);
-        var bottomRight = this.PointToClient(_current.BottomRight);
+        Outline(_current, Bicim.Cozunurluk(_current.Width, _current.Height));
+    }
+
+    private void Outline(PixelRect rect, string label)
+    {
+        var topLeft = this.PointToClient(rect.Position);
+        var bottomRight = this.PointToClient(rect.BottomRight);
         Canvas.SetLeft(Selection, topLeft.X);
         Canvas.SetTop(Selection, topLeft.Y);
         Selection.Width = bottomRight.X - topLeft.X;
         Selection.Height = bottomRight.Y - topLeft.Y;
         Selection.IsVisible = true;
-        TxtSize.Text = Bicim.Cozunurluk(_current.Width, _current.Height);
+        TxtSize.Text = label;
         SizeTag.IsVisible = true;
         SizeTag.Measure(Size.Infinity);
         var yer = TagPosition(new Rect(topLeft, bottomRight), SizeTag.DesiredSize, Bounds.Size);
