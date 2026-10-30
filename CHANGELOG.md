@@ -9,6 +9,26 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-10-30
+
+### Added
+
+- Recorder simple view: in its basic mode the recorder tab shrinks the window to a compact size with a smooth transition and restores it when you leave the tab or switch to the advanced view.
+- The region picker can now pick a whole screen or a single window, not only a drawn area.
+
+### Changed
+
+- Only one surface plays at a time: starting playback in the player, the editor preview or the comparison panel pauses whichever was playing before.
+- The "up to date" message after a version check now appears at the top left, under the version button, instead of the bottom right.
+- The seek bar moves smoothly between position updates, and its ends and the playhead glow carry the accent color.
+- "Assign All" in the default-app suggestion now adds only the file extensions not yet assigned.
+
+### Fixed
+
+- The app opens maximized again when the saved window filled the screen but was stored as not maximized.
+- Audio files no longer stop seeking at the end of the bar, and seeking an audio file lands where you click.
+- Maximizing after leaving the compact mini player restores the normal window size limits.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

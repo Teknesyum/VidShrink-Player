@@ -4,7 +4,7 @@
        it up; no csproj carries a version of its own. The release workflow checks that the
        pushed tag is v$(Version) and that CHANGELOG.md has a heading for it. -->
   <PropertyGroup>
-    <Version>0.0.3</Version>
+    <Version>0.0.4</Version>
   </PropertyGroup>
 
   <!-- CI builds Release with -warnaserror. Without this the two disagree: a local

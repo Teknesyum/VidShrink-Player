@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 PackageIdentifier: Teknesyum.VidShrinkPlayer
-PackageVersion: 0.0.3
+PackageVersion: 0.0.4
 InstallerType: exe
 Scope: user
 InstallModes:
@@ -9,11 +9,11 @@ InstallModes:
 InstallerSwitches:
   Silent: --no-launch
   SilentWithProgress: --no-launch
-  Custom: --tag v0.0.3
+  Custom: --tag v0.0.4
 UpgradeBehavior: install
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/Teknesyum/VidShrink-Player/releases/download/v0.0.3/VidShrinkPlayer-Setup.exe
+    InstallerUrl: https://github.com/Teknesyum/VidShrink-Player/releases/download/v0.0.4/VidShrinkPlayer-Setup.exe
     InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
 ManifestType: installer
 ManifestVersion: 1.9.0

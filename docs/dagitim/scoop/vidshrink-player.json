@@ -1,5 +1,5 @@
 {
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Shrink a video to a target file size, then play, convert, record or trim it.",
     "homepage": "https://github.com/Teknesyum/VidShrink-Player",
     "license": "AGPL-3.0-or-later",
@@ -10,7 +10,7 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Teknesyum/VidShrink-Player/releases/download/v0.0.3/vidshrink-win-x64.zip",
+            "url": "https://github.com/Teknesyum/VidShrink-Player/releases/download/v0.0.4/vidshrink-win-x64.zip",
             "hash": "0000000000000000000000000000000000000000000000000000000000000000"
         }
     },
