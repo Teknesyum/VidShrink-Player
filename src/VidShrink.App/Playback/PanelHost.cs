@@ -1010,8 +1010,7 @@ internal sealed class PanelHost : IDisposable
             var oynuyor = status.State == ComparisonSourceState.Oynuyor;
             if (_panel.Controls.IsPlaying == oynuyor) return;
             _panel.Controls.IsPlaying = oynuyor;
-            if (oynuyor) _audio.Play();
-            else _audio.Pause();
+            ApplyPlayState();
         }
     }
 
@@ -1051,8 +1050,23 @@ internal sealed class PanelHost : IDisposable
         // Duraklatma yalnız oynatmayı durdurur. Önden hazırlığı iptal etmek, sürüyorsa
         // kodladığı pencereyi atardı; baştan başlatma ayar değişmediği halde iş bastan
         // başlıyordu (T161). Hazırlık duraklatmada da arkada bitmeye bırakılır.
-        if (_panel.Controls.IsPlaying) { source.Play(); _audio.Play(); }
-        else { source.Pause(); _audio.Pause(); }
+        if (_panel.Controls.IsPlaying)
+        {
+            OynatmaOdagi.Al(this, () =>
+            {
+                if (!_panel.Controls.IsPlaying) return;
+                _panel.Controls.IsPlaying = false;
+                ApplyPlayState();
+            });
+            source.Play();
+            _audio.Play();
+        }
+        else
+        {
+            OynatmaOdagi.Birak(this);
+            source.Pause();
+            _audio.Pause();
+        }
     }
 
     private async void Seek(TimeSpan position)
@@ -1102,6 +1116,7 @@ internal sealed class PanelHost : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        OynatmaOdagi.Birak(this);
         _settle.Stop();
         _segmentDelay.Stop();
         // Bekleyen boru da bir ffmpeg surecidir; gercekten olene kadar beklenir.

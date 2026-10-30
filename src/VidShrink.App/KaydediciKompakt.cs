@@ -95,18 +95,18 @@ internal sealed class KaydediciKompakt
         }
     }
 
-    internal void Unut(bool minimumlar)
+    internal void Durdur()
     {
         _timer?.Stop();
         _timer = null;
+        var bitince = _bitince;
         _bitince = null;
-        if (Once is { } once && minimumlar && _pencere() is { } pencere)
+        if (bitince is not null && _pencere() is { } pencere && Once is { } once)
         {
+            Once = null;
             pencere.MinWidth = once.MinWidth;
             pencere.MinHeight = once.MinHeight;
         }
-
-        Once = null;
     }
 
     private void Bitir(Window pencere, Durum once)

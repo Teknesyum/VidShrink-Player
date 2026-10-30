@@ -6,9 +6,6 @@ public partial class MainWindow
 {
     private KaydediciKompakt? _kompakt;
     private bool _kompaktBagli;
-    private bool _kompaktMinBekliyor;
-    private double _kompaktMinWidth;
-    private double _kompaktMinHeight;
 
     internal KaydediciKompakt Kompakt => _kompakt ??= new KaydediciKompakt(() => this);
 
@@ -21,8 +18,7 @@ public partial class MainWindow
     private bool KompaktIstenir
         => IsVisible
            && Tabs.SelectedItem is TabItem secili && ReferenceEquals(secili, TabRecorder)
-           && _recorderPane is { AdvancedMode: false }
-           && !Kip.TamEkran && !Kip.Kucuk;
+           && _recorderPane is { AdvancedMode: false };
 
     internal void KompaktUygula()
     {
@@ -32,27 +28,20 @@ public partial class MainWindow
             pane.LevelChanged += KompaktUygula;
         }
 
+        if (Kip.TamEkran || Kip.Kucuk) return;
         if (KompaktIstenir) Kompakt.Gir();
         else if (_kompakt is { Acik: true }) _kompakt.Cik();
     }
 
     private void KipDegisti()
     {
-        if (_kompakt is { Acik: true, Once: { } once })
+        if (Kip.TamEkran || Kip.Kucuk)
         {
-            _kompaktMinBekliyor = Kip.Kucuk;
-            _kompaktMinWidth = once.MinWidth;
-            _kompaktMinHeight = once.MinHeight;
-            _kompakt.Unut(minimumlar: !Kip.Kucuk);
+            _kompakt?.Durdur();
             return;
         }
 
-        if (_kompaktMinBekliyor && !Kip.Kucuk)
-        {
-            _kompaktMinBekliyor = false;
-            MinWidth = _kompaktMinWidth;
-            MinHeight = _kompaktMinHeight;
-        }
+        KompaktUygula();
     }
 
     private void KompaktKapanis()

@@ -289,7 +289,8 @@
   <StaticResource x:Key="TargetMinSize" ResourceKey="TargetMin"/>
   <StaticResource x:Key="VersionButtonFontSize" ResourceKey="FontSize1"/>
   <Thickness x:Key="VersionButtonPadding">4,0</Thickness>
-  <Thickness x:Key="ToastMargin">0,0,24,24</Thickness>
+  <!-- VersionToastMargin <- sol: TitleBarContentMargin (16); üst: TitleBarHeight (28) + SpaceSm (8). Sürüm düğmesinin hemen altı. -->
+  <Thickness x:Key="VersionToastMargin">16,36,0,0</Thickness>
   <StaticResource x:Key="ToastMaxWidth" ResourceKey="ToastWidth"/>
   <StaticResource x:Key="ToastLifetime" ResourceKey="ToastLife"/>
   <x:Double x:Key="InfoBadgeSize">18</x:Double>

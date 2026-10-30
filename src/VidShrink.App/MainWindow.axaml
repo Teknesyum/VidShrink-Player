@@ -2556,8 +2556,8 @@
       </TabControl>
 
       <Border x:Name="VersionToast" Theme="{StaticResource Panel}"
-              HorizontalAlignment="Right" VerticalAlignment="Bottom"
-              Margin="{StaticResource ToastMargin}" MaxWidth="{StaticResource ToastMaxWidth}"
+              HorizontalAlignment="Left" VerticalAlignment="Top"
+              Margin="{StaticResource VersionToastMargin}" MaxWidth="{StaticResource ToastMaxWidth}"
               IsVisible="False" IsHitTestVisible="False"
               auto:AutomationProperties.LiveSetting="Polite">
         <SarilanMetin x:Name="TxtVersionToast" Theme="{StaticResource Body}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>

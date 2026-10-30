@@ -56,8 +56,16 @@ internal static class PencereKonumuKarari
         var pikselYukseklik = (int)Math.Ceiling(yukseklik * olcek);
         var x = Math.Clamp(kayit.X, calisma.X, Math.Max(calisma.X, calisma.Right - pikselGenislik));
         var y = Math.Clamp(kayit.Y, calisma.Y, Math.Max(calisma.Y, calisma.Bottom - pikselYukseklik));
-        return kayit with { X = x, Y = y, Genislik = genislik, Yukseklik = yukseklik, Ekran = hedef.Sinir };
+        var dolu = pikselGenislik >= calisma.Width * DoluPay && pikselYukseklik >= calisma.Height * DoluPay;
+        return kayit with { X = x, Y = y, Genislik = genislik, Yukseklik = yukseklik, Ekran = hedef.Sinir, Buyutulmus = kayit.Buyutulmus || dolu };
     }
+
+    /// <summary>
+    /// Çalışma alanının bu payını iki yönde de kaplayan normal pencere büyütülmüş açılır. Küçük
+    /// kipten Esc ile dönen pencere ekranı dolduran bir normal dikdörtgen olarak kaydediliyordu;
+    /// açılışta kenarları boşluklu, büyütülmemiş geliyordu.
+    /// </summary>
+    internal const double DoluPay = 0.9;
 
     internal static PixelRect Dikdortgen(PencereKonumu konum, double olcek)
         => new(konum.X, konum.Y,

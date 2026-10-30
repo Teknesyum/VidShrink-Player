@@ -233,6 +233,16 @@ public sealed class PencereKonumuTests
     }
 
     [Fact]
+    public void EkraniDolduranNormalPencereBuyutulmusAcilir()
+    {
+        var genis = new EkranAlani(new PixelRect(0, 0, 2560, 1440), new PixelRect(0, 0, 2560, 1400), 1.0);
+        var dolu = PencereKonumuKarari.Coz(new PencereKonumu(0, 0, 2560, 1400, false, genis.Sinir), new[] { genis });
+        Assert.True(dolu!.Buyutulmus);
+        var yari = PencereKonumuKarari.Coz(new PencereKonumu(100, 100, 1600, 1000, false, genis.Sinir), new[] { genis });
+        Assert.False(yari!.Buyutulmus);
+    }
+
+    [Fact]
     public void KayitliEkranHalaBagliysaOSecilir()
     {
         var sol = new EkranAlani(new PixelRect(-1920, 0, 1920, 1080), new PixelRect(-1920, 0, 1920, 1040), 1.0);

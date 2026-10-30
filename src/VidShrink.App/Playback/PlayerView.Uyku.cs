@@ -55,6 +55,8 @@ internal partial class PlayerView
     private void OynatmaDurumunuYansit()
     {
         var oynuyor = OynatmaSuruyor;
+        if (_playing) OynatmaOdagi.Al(this, () => { if (_playing) TogglePlay(false); });
+        else OynatmaOdagi.Birak(this);
         Imlec.Oynatma(oynuyor);
         if (_oynatmaYansidi == oynuyor) return;
         _oynatmaYansidi = oynuyor;

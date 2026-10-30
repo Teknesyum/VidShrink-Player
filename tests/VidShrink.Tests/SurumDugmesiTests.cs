@@ -133,6 +133,23 @@ public sealed class SurumDugmesiTests
     }
 
     [Fact]
+    public void SurumBildirimiSolUsttedirSurumDugmesininAltinda()
+    {
+        var sonuc = AppHost.Run(() =>
+        {
+            var p = Pencere();
+            try
+            {
+                var t = p.VersionToast;
+                return $"{t.HorizontalAlignment}/{t.VerticalAlignment}/{t.Margin}";
+            }
+            finally { p.Close(); }
+        });
+
+        Assert.Equal("Left/Top/16,36,0,0", sonuc);
+    }
+
+    [Fact]
     public void YeniSurumVarOlanGuncellemeYolunaDevredilir()
     {
         var sonuc = AppHost.Run(() =>
