@@ -50,7 +50,13 @@ internal sealed class DefaultAppSuggestionBar : UserControl
         all.Click += async (_, _) =>
         {
             if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard) return;
-            var command = BulkAssociationCommand.Build(FileAssociation.ProgId, ShellIntegration.BulkDefaultExtensions);
+            var extensions = ShellIntegration.BulkDefaultExtensions;
+            if (OperatingSystem.IsWindows() && Environment.ProcessPath is { Length: > 0 } executable)
+            {
+                var missing = DefaultApp.NotOurs(executable, extensions);
+                if (missing.Count > 0) extensions = missing;
+            }
+            var command = BulkAssociationCommand.Build(FileAssociation.ProgId, extensions);
             await clipboard.SetTextAsync(command).ConfigureAwait(true);
             _message.Bind(TextBlock.TextProperty, Text(AllCopiedKey));
         };

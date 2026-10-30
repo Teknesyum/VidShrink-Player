@@ -130,6 +130,20 @@
   <x:Double x:Key="PlaybackCursorWidth">2</x:Double>
 
   <x:Double x:Key="PlaybackSeekBarHeight">24</x:Double>
+  <x:Double x:Key="PlaybackSeekHeadWidth">1</x:Double>
+  <x:Double x:Key="PlaybackSeekShimmerWidth">48</x:Double>
+  <LinearGradientBrush x:Key="PlaybackSeekSpan" StartPoint="0%,50%" EndPoint="100%,50%">
+    <GradientStop Color="{StaticResource Renk2Color}" Offset="0"/>
+    <GradientStop Color="{StaticResource Renk1Color}" Offset="0.2"/>
+    <GradientStop Color="{StaticResource Renk1Color}" Offset="0.8"/>
+    <GradientStop Color="{StaticResource Renk2Color}" Offset="1"/>
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="PlaybackSeekShimmer" StartPoint="0%,50%" EndPoint="100%,50%">
+    <GradientStop Color="{StaticResource Renk1Color}" Offset="0"/>
+    <GradientStop Color="{StaticResource Renk2Color}" Offset="0.33"/>
+    <GradientStop Color="{StaticResource Renk1Color}" Offset="0.66"/>
+    <GradientStop Color="{StaticResource Renk2Color}" Offset="1"/>
+  </LinearGradientBrush>
   <x:Double x:Key="PlaybackSeekTrackHeight">4</x:Double>
   <x:Double x:Key="PlaybackBarButtonSize">32</x:Double>
 

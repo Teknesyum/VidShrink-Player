@@ -224,6 +224,84 @@ public sealed class MuzikCalarTests
     }
 
     [Fact]
+    public async Task Libmpv_kapaksiz_mp3te_arama_zaman_asimina_dusmeden_biter()
+    {
+        var klasor = Path.Combine(TestPaths.OutputRoot, "muzik-arama", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(klasor);
+        var mp3 = Uret(klasor, "kapaksiz.mp3",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=20",
+            "-c:a", "libmp3lame");
+
+        using var motor = new MpvEngine();
+        motor.SetProperty("ao", "null");
+        await motor.OpenAsync(mp3);
+        var sonuc = await motor.SeekAsync(12, SeekPrecision.Exact);
+        var konum = motor.PositionSeconds;
+        motor.Dispose();
+        Directory.Delete(klasor, true);
+
+        Assert.False(motor.HasVideo);
+        Assert.Equal(SeekOutcome.Shown, sonuc.Outcome);
+        Assert.InRange(konum, 11.5, 12.5);
+    }
+
+    [Fact]
+    public async Task Libmpv_her_ses_uzantisini_acar_ve_istenen_yere_sarar()
+    {
+        var klasor = Path.Combine(TestPaths.OutputRoot, "muzik-tum-uzantilar", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(klasor);
+        var kaynak = new[] { "-f", "lavfi", "-i", "sine=frequency=440:duration=20" };
+        var tarifler = new Dictionary<string, string[]>
+        {
+            ["mp3"] = new[] { "-c:a", "libmp3lame" },
+            ["m4a"] = new[] { "-c:a", "aac" },
+            ["m4b"] = new[] { "-c:a", "aac", "-f", "ipod" },
+            ["aac"] = new[] { "-c:a", "aac", "-f", "adts" },
+            ["adts"] = new[] { "-c:a", "aac", "-f", "adts" },
+            ["adt"] = new[] { "-c:a", "aac", "-f", "adts" },
+            ["flac"] = new[] { "-c:a", "flac" },
+            ["wav"] = new[] { "-c:a", "pcm_s16le" },
+            ["wma"] = new[] { "-c:a", "wmav2", "-f", "asf" },
+            ["ogg"] = new[] { "-c:a", "libvorbis", "-f", "ogg" },
+            ["oga"] = new[] { "-c:a", "libvorbis", "-f", "ogg" },
+            ["opus"] = new[] { "-c:a", "libopus", "-f", "opus" },
+            ["mka"] = new[] { "-c:a", "libvorbis", "-f", "matroska" },
+            ["aif"] = new[] { "-c:a", "pcm_s16be", "-f", "aiff" },
+            ["aifc"] = new[] { "-c:a", "pcm_s16be", "-f", "aiff" },
+            ["aiff"] = new[] { "-c:a", "pcm_s16be", "-f", "aiff" },
+            ["au"] = new[] { "-c:a", "pcm_s16be", "-f", "au" },
+            ["snd"] = new[] { "-c:a", "pcm_s16be", "-f", "au" },
+            ["mp2"] = new[] { "-c:a", "mp2", "-f", "mp2" },
+            ["mpa"] = new[] { "-c:a", "mp2", "-f", "mp2" },
+            ["ac3"] = new[] { "-c:a", "ac3", "-f", "ac3" },
+            ["weba"] = new[] { "-c:a", "libopus", "-f", "webm" }
+        };
+
+        var kusurlar = new List<string>();
+        foreach (var (uzanti, tarif) in tarifler)
+        {
+            string yol;
+            try { yol = Uret(klasor, "ornek." + uzanti, kaynak.Concat(tarif).ToArray()); }
+            catch (Xunit.Sdk.XunitException) { continue; }
+
+            using var motor = new MpvEngine();
+            motor.SetProperty("ao", "null");
+            try
+            {
+                await motor.OpenAsync(yol);
+                var sonuc = await motor.SeekAsync(12, SeekPrecision.Exact);
+                var konum = motor.PositionSeconds;
+                if (motor.HasVideo || sonuc.Outcome != SeekOutcome.Shown || konum < 11.4 || konum > 12.6)
+                    kusurlar.Add($"{uzanti}: {sonuc.Outcome} konum={konum:F2} video={motor.HasVideo}");
+            }
+            catch (Exception hata) { kusurlar.Add($"{uzanti}: {hata.GetType().Name} {hata.Message}"); }
+        }
+        Directory.Delete(klasor, true);
+
+        Assert.True(kusurlar.Count == 0, string.Join("; ", kusurlar));
+    }
+
+    [Fact]
     public async Task Libmpv_kapakli_mp3te_etiketi_okur_kapagi_cizer_goruntu_saymaz()
     {
         var klasor = Path.Combine(TestPaths.OutputRoot, "muzik-canli", Guid.NewGuid().ToString("N"));

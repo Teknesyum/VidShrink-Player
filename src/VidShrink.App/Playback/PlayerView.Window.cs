@@ -14,6 +14,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using VidShrink.App.Localization;
 using VidShrink.Player;
@@ -770,6 +771,7 @@ internal partial class PlayerView
         var at = SeekMarks.SecondsAt(x, SeekBar.Bounds.Width, duration);
         _trackPaused = false;
         KullaniciIslemi();
+        _seekSmooth.Reset();
         _seek.GoTo(at);
         _trace.Add("seekbar -> " + at.ToString("0.###", CultureInfo.InvariantCulture));
         RefreshState();
@@ -805,7 +807,8 @@ internal partial class PlayerView
         var width = SeekBar.Bounds.Width;
         SeekTrack.Classes.Set("unknown", !known);
         SeekFill.IsVisible = known;
-        if (known) SeekFill.Width = SeekMarks.Offset(_seek.Target, duration, width);
+        SeekHead.IsVisible = known;
+        if (known) PlaceSeekHead(duration, width);
 
         var bookmarks = _path is null ? Array.Empty<double>() : _history.Bookmarks(_path);
         var key = string.Join(",", _chapters) + "|" + string.Join(",", bookmarks) + "|"
@@ -814,6 +817,52 @@ internal partial class PlayerView
         _marksKey = key;
         _marks = known ? SeekMarks.Build(_chapters, bookmarks, duration) : Array.Empty<SeekMark>();
         LayoutMarks(width, duration);
+    }
+
+    private readonly SeekSmoother _seekSmooth = new();
+    private DispatcherTimer? _shimmerClock;
+    private long _shimmerAt;
+
+    private void PlaceSeekHead(double duration, double width)
+    {
+        var now = System.Diagnostics.Stopwatch.GetTimestamp() / (double)System.Diagnostics.Stopwatch.Frequency;
+        var at = _seekSmooth.Update(_seek.Target, now, _playing && !_seekDragging, _speed);
+        var offset = SeekMarks.Offset(at, duration, width);
+        SeekFill.Width = offset;
+        SeekSpan.Width = width;
+        var half = SeekHead.Width / 2;
+        SeekHead.Margin = new Thickness(Math.Max(0, offset - half), 0, 0, 0);
+        SeekShimmer.Margin = new Thickness(Math.Max(0, offset - SeekShimmer.Width), 0, 0, 0);
+    }
+
+    private void TickSeekHead()
+    {
+        if (SeekBar is null || _engine is null) return;
+        var duration = _seek.Duration;
+        if (!double.IsFinite(duration) || duration <= 0) return;
+        PlaceSeekHead(duration, SeekBar.Bounds.Width);
+        PulseShimmer();
+    }
+
+    private void PulseShimmer()
+    {
+        var now = Environment.TickCount64;
+        if (now - _shimmerAt < 14000) return;
+        _shimmerAt = now;
+        SeekShimmer.IsVisible = true;
+        SeekShimmer.Classes.Set("run", false);
+        SeekShimmer.Classes.Set("run", true);
+        _shimmerClock ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+        _shimmerClock.Tick -= EndShimmer;
+        _shimmerClock.Tick += EndShimmer;
+        _shimmerClock.Start();
+    }
+
+    private void EndShimmer(object? sender, EventArgs e)
+    {
+        _shimmerClock?.Stop();
+        SeekShimmer.Classes.Set("run", false);
+        SeekShimmer.IsVisible = false;
     }
 
     private void LayoutMarks(double width, double duration)

@@ -96,6 +96,68 @@
             </Transitions>
           </Border.Transitions>
           <StackPanel Spacing="{StaticResource PlaybackBadgeGap}">
+            <StackPanel x:Name="AudioBars"
+                        Classes="eq"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="{StaticResource SpaceXs}"
+                        Height="{StaticResource SpaceXl}">
+              <StackPanel.Styles>
+                <Style Selector="StackPanel.eq > Border">
+                  <Setter Property="Width" Value="{StaticResource SpaceXs}"/>
+                  <Setter Property="VerticalAlignment" Value="Bottom"/>
+                  <Setter Property="Height" Value="{StaticResource SpaceXl}"/>
+                  <Setter Property="Background" Value="{StaticResource NeonBlue}"/>
+                  <Setter Property="CornerRadius" Value="{StaticResource RadiusChip}"/>
+                  <Setter Property="RenderTransformOrigin" Value="50%,100%"/>
+                </Style>
+                <Style Selector="StackPanel.eq.playing > Border.b1">
+                  <Style.Animations>
+                    <Animation Duration="0:0:0.85" IterationCount="INFINITE" PlaybackDirection="Alternate" Easing="LinearEasing">
+                      <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleY" Value="0.25"/></KeyFrame>
+                      <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleY" Value="0.9"/></KeyFrame>
+                    </Animation>
+                  </Style.Animations>
+                </Style>
+                <Style Selector="StackPanel.eq.playing > Border.b2">
+                  <Style.Animations>
+                    <Animation Duration="0:0:0.6" IterationCount="INFINITE" PlaybackDirection="Alternate" Easing="LinearEasing">
+                      <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleY" Value="0.45"/></KeyFrame>
+                      <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleY" Value="1"/></KeyFrame>
+                    </Animation>
+                  </Style.Animations>
+                </Style>
+                <Style Selector="StackPanel.eq.playing > Border.b3">
+                  <Style.Animations>
+                    <Animation Duration="0:0:0.95" IterationCount="INFINITE" PlaybackDirection="Alternate" Easing="LinearEasing">
+                      <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleY" Value="0.2"/></KeyFrame>
+                      <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleY" Value="0.7"/></KeyFrame>
+                    </Animation>
+                  </Style.Animations>
+                </Style>
+                <Style Selector="StackPanel.eq.playing > Border.b4">
+                  <Style.Animations>
+                    <Animation Duration="0:0:0.7" IterationCount="INFINITE" PlaybackDirection="Alternate" Easing="LinearEasing">
+                      <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleY" Value="0.35"/></KeyFrame>
+                      <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleY" Value="1"/></KeyFrame>
+                    </Animation>
+                  </Style.Animations>
+                </Style>
+                <Style Selector="StackPanel.eq.playing > Border.b5">
+                  <Style.Animations>
+                    <Animation Duration="0:0:1.05" IterationCount="INFINITE" PlaybackDirection="Alternate" Easing="LinearEasing">
+                      <KeyFrame Cue="0%"><Setter Property="ScaleTransform.ScaleY" Value="0.3"/></KeyFrame>
+                      <KeyFrame Cue="100%"><Setter Property="ScaleTransform.ScaleY" Value="0.8"/></KeyFrame>
+                    </Animation>
+                  </Style.Animations>
+                </Style>
+              </StackPanel.Styles>
+              <Border Classes="b1"><Border.RenderTransform><ScaleTransform ScaleY="0.2"/></Border.RenderTransform></Border>
+              <Border Classes="b2"><Border.RenderTransform><ScaleTransform ScaleY="0.2"/></Border.RenderTransform></Border>
+              <Border Classes="b3"><Border.RenderTransform><ScaleTransform ScaleY="0.2"/></Border.RenderTransform></Border>
+              <Border Classes="b4"><Border.RenderTransform><ScaleTransform ScaleY="0.2"/></Border.RenderTransform></Border>
+              <Border Classes="b5"><Border.RenderTransform><ScaleTransform ScaleY="0.2"/></Border.RenderTransform></Border>
+            </StackPanel>
             <SarilanMetin x:Name="TxtAudioTitle" Theme="{StaticResource DropTitle}"/>
             <SarilanMetin x:Name="TxtAudioArtist"
                        Theme="{StaticResource PlaybackBadgeText}"
@@ -243,8 +305,58 @@
                       Theme="{StaticResource PlaybackSeekTrackFill}"
                       HorizontalAlignment="Left"
                       VerticalAlignment="Center"
+                      ClipToBounds="True"
+                      Background="Transparent"
                       Width="0"
-                      IsVisible="False"/>
+                      IsVisible="False">
+                <Border x:Name="SeekSpan"
+                        HorizontalAlignment="Left"
+                        Background="{StaticResource PlaybackSeekSpan}"/>
+              </Border>
+              <Border x:Name="SeekShimmer"
+                      Classes="shimmer"
+                      Width="{StaticResource PlaybackSeekShimmerWidth}"
+                      Height="{StaticResource PlaybackSeekTrackHeight}"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      IsHitTestVisible="False"
+                      IsVisible="False"
+                      Opacity="0"
+                      Background="{StaticResource PlaybackSeekShimmer}"
+                      CornerRadius="{StaticResource RadiusChip}">
+                <Border.RenderTransform>
+                  <TranslateTransform X="0"/>
+                </Border.RenderTransform>
+                <Border.Styles>
+                  <Style Selector="Border.shimmer.run">
+                    <Style.Animations>
+                      <Animation Duration="0:0:1.4" Easing="CubicEaseOut" FillMode="Forward">
+                        <KeyFrame Cue="0%">
+                          <Setter Property="Opacity" Value="0"/>
+                          <Setter Property="TranslateTransform.X" Value="-24"/>
+                        </KeyFrame>
+                        <KeyFrame Cue="35%">
+                          <Setter Property="Opacity" Value="0.85"/>
+                        </KeyFrame>
+                        <KeyFrame Cue="100%">
+                          <Setter Property="Opacity" Value="0"/>
+                          <Setter Property="TranslateTransform.X" Value="-4"/>
+                        </KeyFrame>
+                      </Animation>
+                    </Style.Animations>
+                  </Style>
+                </Border.Styles>
+              </Border>
+              <Border x:Name="SeekHead"
+                      Width="{StaticResource PlaybackSeekHeadWidth}"
+                      Height="{StaticResource PlaybackSeekBarHeight}"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      IsHitTestVisible="False"
+                      IsVisible="False"
+                      Background="{StaticResource NeonBlue}"
+                      CornerRadius="{StaticResource RadiusChip}"
+                      BoxShadow="{DynamicResource GlowBlue}"/>
               <Canvas x:Name="SeekMarkLayer" IsHitTestVisible="False"/>
             </Panel>
 

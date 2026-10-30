@@ -30,6 +30,7 @@ internal partial class PlayerView
 
     private void FollowAudio(IPlaybackEngine engine)
     {
+        AudioBars.Classes.Set("playing", _playing);
         if (!_playing) return;
         var at = engine.PositionSeconds;
         if (!double.IsFinite(at)) return;

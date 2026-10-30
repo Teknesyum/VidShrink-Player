@@ -79,6 +79,14 @@ internal static class DefaultApp
         return true;
     }
 
+    internal static IReadOnlyList<string> NotOurs(string executablePath, IReadOnlyList<string> extensions)
+    {
+        var target = FileAssociation.LaunchTarget(executablePath);
+        return extensions
+            .Where(extension => !IsOurs(HandlerProgId(extension), Handler(extension), executablePath, target))
+            .ToArray();
+    }
+
     /// <summary>
     /// Varsayılan uygulamalar sayfasının VidShrink'in kendi girdisine inen adresi.
     /// Windows o sayfada yalnız bizim kaydettiğimiz uzantıları listeler ve hepsi video

@@ -955,7 +955,8 @@ public sealed partial class MpvEngine : IPlaybackEngine
     private TaskCompletionSource<SeekResult>? TakeShown(out double latency)
     {
         latency = 0;
-        if (_seekDone is null || _restartGen != _seekGen || _newFrameInFlight || _newFramesShown <= _newFramesAtIssue) return null;
+        if (_seekDone is null || _restartGen != _seekGen || _newFrameInFlight) return null;
+        if (_hasVideo && _newFramesShown <= _newFramesAtIssue) return null;
         var done = _seekDone;
         _seekDone = null;
         latency = Math.Max(_newFrameAt, _restartAt) - _issuedAt;

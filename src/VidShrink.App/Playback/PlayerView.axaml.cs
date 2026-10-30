@@ -738,6 +738,7 @@ internal partial class PlayerView : UserControl
         if (drawn && (_playing || _trackPaused)) _seek.Follow(engine.PositionSeconds);
         if (drawn) RefreshState();
         else if (AudioOnly) FollowAudio(engine);
+        if (_playing) TickSeekHead();
         if (_playing && engine.EndReached)
         {
             TogglePlay(false);
