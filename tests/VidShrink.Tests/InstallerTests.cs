@@ -437,4 +437,28 @@ public sealed class InstallerTests
         Assert.Contains("Remove-UserPathEntry $RegistryRoot", block, StringComparison.Ordinal);
         Assert.Contains("if ($RemoveSettings)", block, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Betik çevrimdışı arşivi kurucuyla aynı kuralla tanır: işaret dosyası, <c>tools</c> klasörü, hedef uyuşmazlığında durma,
+    /// sha256 tutmayanı indirme. Windows PowerShell 5.1 ayrıştıramayacağı <c>&amp;&amp;</c>, <c>||</c> ve üçlü işleç yok.
+    /// </summary>
+    [Fact]
+    public void TheWindowsInstallerReadsTheOfflineArchiveTheSameWayTheExeDoes()
+    {
+        var script = WindowsInstaller;
+
+        Assert.Contains($"'{OfflineBundle.MarkerFileName}'", script, StringComparison.Ordinal);
+        Assert.Contains($"'{OfflineBundle.ToolsFolder}\\ffmpeg'", script, StringComparison.Ordinal);
+        Assert.Contains($"'{OfflineBundle.ToolsFolder}\\libmpv'", script, StringComparison.Ordinal);
+        Assert.Contains(OfflineBundle.ArchiveName("$Rid"), script, StringComparison.Ordinal);
+        Assert.Contains("[string]$OfflineSource", script[..script.IndexOf("\n)", StringComparison.Ordinal)], StringComparison.Ordinal);
+        Assert.Contains("$offlineDirectory = $PSScriptRoot", script, StringComparison.Ordinal);
+        Assert.Contains("$release = [pscustomobject]@{ tag_name = $offline.Tag; assets = $null }", script, StringComparison.Ordinal);
+        Assert.Contains("Get-ReleaseAsset $Tag $Name $Destination", script, StringComparison.Ordinal);
+        Assert.Contains("Test-OfflineFile (Join-Path $bundleLibMpvFolder 'vulkan-1.dll') $vulkanLoaderDllSha256", script, StringComparison.Ordinal);
+
+        var code = string.Join('\n', script.Split('\n').Where(line => !line.TrimStart().StartsWith('#')));
+        Assert.DoesNotContain(" && ", code, StringComparison.Ordinal);
+        Assert.DoesNotContain(" || ", code, StringComparison.Ordinal);
+    }
 }

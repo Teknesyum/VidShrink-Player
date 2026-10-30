@@ -79,6 +79,21 @@ ANSI code page and turns every non-ASCII character into mojibake:
 powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText('C:\path\to\Install-VidShrink.ps1',[Text.Encoding]::UTF8))"
 ```
 
+### Windows — offline archive
+
+`VidShrinkPlayer-Offline-win-x64.zip` (or `-win-arm64`) installs without a connection. Unzip
+it and run `VidShrinkPlayer-Setup.exe` from that folder: it sees `vidshrink-offline.txt` beside
+it and installs the application, the launcher, FFmpeg, libmpv and the Vulkan loader from the
+archive, with no request to GitHub. Every tool is checked against the SHA-256 pinned in the
+installer; a file that is missing or does not match is downloaded instead, so on a machine
+that is online the worst case is the normal install.
+
+`Install-VidShrink.ps1` follows the same rule. Copy it into the unzipped folder and run it
+there (or pass the folder with `-OfflineSource C:\path\to\folder`); with no marker file it
+behaves as before. The marker names the release and the target, and a script or installer
+meeting an archive for the other architecture stops and names the file to download. The
+licence texts for FFmpeg and libmpv are in the archive's `licenses` folder.
+
 ### macOS / Linux — one line
 
 ```bash

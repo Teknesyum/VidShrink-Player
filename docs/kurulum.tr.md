@@ -48,6 +48,20 @@ karakteri bozuyor.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText('C:\path\to\Install-VidShrink.ps1',[Text.Encoding]::UTF8))"
 ```
 
+### Windows — çevrimdışı arşiv
+
+`VidShrinkPlayer-Offline-win-x64.zip` (ya da `-win-arm64`) bağlantı olmadan kurar. Arşivi açın
+ve o klasörden `VidShrinkPlayer-Setup.exe`'yi koşturun: yanındaki `vidshrink-offline.txt`'yi
+görür, uygulamayı, başlatıcıyı, FFmpeg'i, libmpv'yi ve Vulkan yükleyicisini arşivden kurar,
+GitHub'a istek atmaz. Her araç kurucuya pinlenmiş SHA-256 ile denetlenir; eksik ya da tutmayan
+dosya indirilir, yani bağlantılı makinede en kötü durum olağan kurulumdur.
+
+`Install-VidShrink.ps1` aynı kuralı uygular. Betiği açılmış klasöre kopyalayıp orada koşturun
+(ya da klasörü `-OfflineSource C:\yol\klasor` ile verin); işaret dosyası yoksa eskisi gibi
+davranır. İşaret dosyası sürümü ve hedefi söyler; başka mimarinin arşivine denk gelen betik ya
+da kurucu durur ve indirilecek dosyanın adını söyler. FFmpeg ve libmpv lisans metinleri
+arşivin `licenses` klasöründe.
+
 ### macOS / Linux — tek satır
 
 ```bash

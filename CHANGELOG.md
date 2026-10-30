@@ -9,6 +9,10 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+### Added
+
+- `Install-VidShrink.ps1` recognises the offline archive: run from the unzipped folder (or with `-OfflineSource`), it installs the tools from the archive after a SHA-256 check and downloads only what is missing or does not match.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

@@ -15,6 +15,9 @@ param(
     # Yalnız bağımlılık kolu: ffmpeg ve libmpv verilen klasöre indirilip sha256'ları
     # doğrulanır, kurulum yapılmaz. CI bu kolu gerçek bir arm64 koşucusunda koşuyor.
     [string]$DepsOnly,
+    # Çevrimdışı arşivin (VidShrinkPlayer-Offline-<rid>.zip) açıldığı klasör. Boşsa betiğin
+    # kendi klasörüne bakılır; orada vidshrink-offline.txt varsa araçlar oradan kurulur.
+    [string]$OfflineSource,
     # Yalnız negatif kontrol için: beklenen sha256'yı bilerek bozar, doğrulamanın
     # gerçekten durdurduğunu gösterir.
     [string]$DepsSha256Override
@@ -224,6 +227,66 @@ function Assert-Checksum([hashtable]$Table, [string]$Name, [string]$Path) {
     if ($actual -ne $Table[$Name]) {
         throw "$Name sağlaması tutmuyor. Beklenen $($Table[$Name]), bulunan $actual. Kurulum durduruldu."
     }
+}
+
+function Get-OfflineBundle([string]$Directory, [string]$Rid) {
+    if (-not $Directory) { return $null }
+    $marker = Join-Path $Directory 'vidshrink-offline.txt'
+    if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) { return $null }
+    $values = @{}
+    foreach ($line in Get-Content -LiteralPath $marker) {
+        $split = $line.IndexOf('=')
+        if ($split -gt 0) { $values[$line.Substring(0, $split).Trim()] = $line.Substring($split + 1).Trim() }
+    }
+    if (-not $values['tag'] -or -not $values['rid']) {
+        throw "Çevrimdışı arşivin işaret dosyası okunamadı: $marker. Arşivi yeniden indirin."
+    }
+    if ($values['rid'] -ne $Rid) {
+        throw "Bu çevrimdışı arşiv $($values['rid']) içindir; bu bilgisayar $Rid. VidShrinkPlayer-Offline-$Rid.zip dosyasını indirin."
+    }
+    return @{ Directory = (Resolve-Path -LiteralPath $Directory).ProviderPath; Tag = $values['tag']; Rid = $values['rid'] }
+}
+
+function Test-OfflineFile([string]$Path, [string]$Sha256) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        Write-Host "Çevrimdışı arşivde dosya yok, indirilecek: $Path" -ForegroundColor Yellow
+        return $false
+    }
+    $actual = Get-FileSha256 $Path
+    if ($actual -ne $Sha256.ToUpperInvariant()) {
+        Write-Host "Çevrimdışı arşivdeki $(Split-Path -Leaf $Path) sağlaması tutmuyor (beklenen $Sha256, bulunan $actual); indirilecek." -ForegroundColor Yellow
+        return $false
+    }
+    return $true
+}
+
+function Copy-OfflineFfmpeg([hashtable]$Bundle, [object[]]$Entries, [string]$Destination) {
+    $folder = Join-Path $Bundle.Directory 'tools\ffmpeg'
+    foreach ($item in $Entries) {
+        if (-not (Test-OfflineFile (Join-Path $folder $item.Name) $item.Sha256)) { return $null }
+    }
+    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    foreach ($item in $Entries) { Copy-Item -LiteralPath (Join-Path $folder $item.Name) -Destination (Join-Path $Destination $item.Name) -Force }
+    return @{
+        ffmpeg  = (Join-Path $Destination 'ffmpeg.exe')
+        ffprobe = (Join-Path $Destination 'ffprobe.exe')
+    }
+}
+
+function Get-VerifiedReleaseAsset([hashtable]$Bundle, [string]$Tag, [string]$Name, [string]$Destination, [hashtable]$Table) {
+    if ($Bundle -and $Table) {
+        $local = Join-Path $Bundle.Directory $Name
+        if ((Test-Path -LiteralPath $local -PathType Leaf) -and $Table.ContainsKey($Name)) {
+            Copy-Item -LiteralPath $local -Destination $Destination -Force
+            if ((Get-FileSha256 $Destination) -eq $Table[$Name].ToUpperInvariant()) { return }
+            Write-Host "Çevrimdışı arşivdeki $Name sağlaması tutmuyor; indirilecek." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Çevrimdışı arşivde $Name yok; indirilecek." -ForegroundColor Yellow
+        }
+    }
+    Get-ReleaseAsset $Tag $Name $Destination
+    if ($Table) { Assert-Checksum $Table $Name $Destination }
 }
 
 $libMpvUrl = 'https://github.com/Teknesyum/VidShrink-Player/releases/download/deps-libmpv-20260903/mpv-dev-x86_64-20260903-git-69e63f425a.7z'
@@ -1115,8 +1178,26 @@ if ($DepsOnly) {
     return
 }
 
-$ffmpeg = Find-Tool 'ffmpeg'
-$ffprobe = Find-Tool 'ffprobe'
+$offlineDirectory = $OfflineSource
+if (-not $offlineDirectory) { $offlineDirectory = $PSScriptRoot }
+$offline = Get-OfflineBundle $offlineDirectory $runtimeIdentifier
+if ($offline) { Write-Host "Çevrimdışı arşiv: araçlar $($offline.Directory) klasöründen kurulacak." -ForegroundColor Cyan }
+
+$ffmpeg = $null
+$ffprobe = $null
+if ($offline) {
+    $offlineEntries = if ($isArm64) { $ffmpegArm64Entries } else { $ffmpegX64Entries }
+    $offlineFfmpegWork = Join-Path ([IO.Path]::GetTempPath()) ("vidshrink-ffmpeg-" + [Guid]::NewGuid().ToString('N'))
+    $bundledFfmpeg = Copy-OfflineFfmpeg $offline $offlineEntries (Join-Path $offlineFfmpegWork 'bin')
+    if ($bundledFfmpeg) {
+        $ffmpeg = $bundledFfmpeg.ffmpeg
+        $ffprobe = $bundledFfmpeg.ffprobe
+    }
+}
+if (-not $ffmpeg -or -not $ffprobe) {
+    $ffmpeg = Find-Tool 'ffmpeg'
+    $ffprobe = Find-Tool 'ffprobe'
+}
 if (-not $ffmpeg -or -not $ffprobe) {
     if ($isArm64) {
         $ffmpegWork = Join-Path ([IO.Path]::GetTempPath()) ("vidshrink-ffmpeg-" + [Guid]::NewGuid().ToString('N'))
@@ -1166,8 +1247,13 @@ $stageRoot = Join-Path $workRoot 'stage'
 try {
     New-Item -ItemType Directory -Path $workRoot, $stageRoot -Force | Out-Null
 
-    Write-Host 'Son yayın aranıyor...' -ForegroundColor Cyan
-    $release = Get-LatestRelease
+    if ($offline) {
+        $release = [pscustomobject]@{ tag_name = $offline.Tag; assets = $null }
+    }
+    else {
+        Write-Host 'Son yayın aranıyor...' -ForegroundColor Cyan
+        $release = Get-LatestRelease
+    }
     $tag = [string]$release.tag_name
     $version = $tag.TrimStart('v')
     Write-Host "Kurulacak sürüm: $version" -ForegroundColor Cyan
@@ -1186,14 +1272,17 @@ try {
     $checksumsPath = Join-Path $workRoot $checksumsName
 
     Write-Host 'Yayın paketi indiriliyor...' -ForegroundColor Cyan
-    Get-ReleaseAsset $tag $checksumsName $checksumsPath
-    Get-ReleaseAsset $tag $archiveName $archivePath
-    Get-ReleaseAsset $tag $launcherArchiveName $launcherArchivePath
+    if ($offline -and (Test-Path -LiteralPath (Join-Path $offline.Directory $checksumsName) -PathType Leaf)) {
+        Copy-Item -LiteralPath (Join-Path $offline.Directory $checksumsName) -Destination $checksumsPath -Force
+    }
+    else {
+        Get-ReleaseAsset $tag $checksumsName $checksumsPath
+    }
+    $checksums = Read-Checksums $checksumsPath
 
     Write-Host 'İndirilenler doğrulanıyor...' -ForegroundColor Cyan
-    $checksums = Read-Checksums $checksumsPath
-    Assert-Checksum $checksums $archiveName $archivePath
-    Assert-Checksum $checksums $launcherArchiveName $launcherArchivePath
+    Get-VerifiedReleaseAsset $offline $tag $archiveName $archivePath $checksums
+    Get-VerifiedReleaseAsset $offline $tag $launcherArchiveName $launcherArchivePath $checksums
 
     # Kurulum düzeni: kökte başlatıcı ve ffmpeg, app\ altında güncellenen uygulama.
     # Çalışan bir exe ve yüklü dll'ler üzerine yazılamadığı için güncelleme, uygulama
@@ -1214,9 +1303,20 @@ try {
 
     $libMpvRoot = Join-Path $stageRoot 'tools\libmpv'
     $installedLibMpv = Join-Path $resolvedInstallRoot "tools\libmpv\$libMpvFileName"
-    $libMpvSource = Install-LibMpv $workRoot $libMpvRoot $installedLibMpv
+    $libMpvExisting = $installedLibMpv
+    $vulkanExisting = Join-Path $resolvedInstallRoot 'tools\libmpv'
+    if ($offline) {
+        $bundleLibMpvFolder = Join-Path $offline.Directory 'tools\libmpv'
+        if (Test-OfflineFile (Join-Path $bundleLibMpvFolder $libMpvFileName) $libMpvDllSha256) {
+            $libMpvExisting = Join-Path $bundleLibMpvFolder $libMpvFileName
+        }
+        if (Test-OfflineFile (Join-Path $bundleLibMpvFolder 'vulkan-1.dll') $vulkanLoaderDllSha256) {
+            $vulkanExisting = $bundleLibMpvFolder
+        }
+    }
+    $libMpvSource = Install-LibMpv $workRoot $libMpvRoot $libMpvExisting
     Write-Host "libmpv hazır ($libMpvSource, sha256 doğrulandı)." -ForegroundColor Cyan
-    $vulkanSource = Install-VulkanLoader $workRoot $libMpvRoot (Join-Path $resolvedInstallRoot 'tools\libmpv')
+    $vulkanSource = Install-VulkanLoader $workRoot $libMpvRoot $vulkanExisting
     Write-Host "Vulkan yükleyicisi hazır ($vulkanSource, sha256 doğrulandı)." -ForegroundColor Cyan
 
     foreach ($processName in 'VidShrinkPlayer.App', 'VidShrinkPlayer', 'VidShrink.App', 'VidShrink') {
