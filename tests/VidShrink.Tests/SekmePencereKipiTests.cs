@@ -291,6 +291,54 @@ public sealed class SekmePencereKipiTests
     }
 
     [Fact]
+    public void BuyutulmusPencereKucuktenEscIleBuyutulmusDoner()
+    {
+        var sonuc = Kanitla(klasor =>
+        {
+            var pencere = Ac(klasor);
+            try
+            {
+                pencere.WindowState = WindowState.Maximized;
+                Dispatcher.UIThread.RunJobs();
+                var min = (pencere.MinWidth, pencere.MinHeight);
+                var kip = pencere.Kip;
+                var olcu = new List<string>();
+                var tabanDurumu = new List<WindowState>();
+                pencere.PropertyChanged += (_, e) =>
+                {
+                    if (e.Property == Window.MinWidthProperty && pencere.MinWidth > 0) tabanDurumu.Add(pencere.WindowState);
+                };
+
+                kip.KucukVeyaTamEkran(0);
+                olcu.Add($"orta1 {pencere.WindowState}");
+                kip.Birak();
+                olcu.Add($"esc1 {pencere.WindowState} {pencere.Width}x{pencere.Height}");
+                var tamSonra = (pencere.WindowState, kip.Kucuk, pencere.MinWidth, pencere.MinHeight);
+
+                kip.KucukVeyaTamEkran(0);
+                kip.KucukVeyaTamEkran(0);
+                olcu.Add($"kucuk {pencere.WindowState}/{kip.Kucuk}/{pencere.MinWidth}");
+                var kucukBoyut = (pencere.Width, pencere.Height);
+                kip.Birak();
+                Dispatcher.UIThread.RunJobs();
+                olcu.Add($"esc2 {pencere.WindowState}/{kip.Kucuk}/{pencere.MinWidth}x{pencere.MinHeight}");
+                return (tamSonra, ikinci: (pencere.WindowState, kip.Kucuk, pencere.MinWidth, pencere.MinHeight), min, kucukBoyut, tabanDurumu, dokum: string.Join(" | ", olcu));
+            }
+            finally
+            {
+                pencere.Kip.KucukBitir();
+                pencere.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+
+        _output.WriteLine(sonuc.dokum);
+        Assert.Equal((WindowState.Maximized, false, sonuc.min.Item1, sonuc.min.Item2), sonuc.tamSonra);
+        Assert.Equal((WindowState.Maximized, false, sonuc.min.Item1, sonuc.min.Item2), sonuc.ikinci);
+        Assert.Equal(new[] { WindowState.Maximized }, sonuc.tabanDurumu);
+    }
+
+    [Fact]
     public void UstPanelCiftTikOrtaTusunYolunuCagirir()
     {
         var sonuc = Kanitla(klasor =>

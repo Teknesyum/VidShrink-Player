@@ -65,7 +65,7 @@ internal sealed class PencereKipi
         if (pencere is not null)
         {
             pencere.WindowState = (WindowState)sonraki.State;
-            if (sonraki.State != (int)WindowState.FullScreen)
+            if (sonraki.State == (int)WindowState.Normal)
             {
                 pencere.Position = new PixelPoint((int)sonraki.X, (int)sonraki.Y);
                 pencere.Width = sonraki.Width;
@@ -123,16 +123,20 @@ internal sealed class PencereKipi
 
         if (_min is null) return false;
         var normal = _normal;
-        KucukBitir();
-        if (_pencere() is { } pencere && normal is { State: (int)WindowState.Normal } n && n.Width > 0 && n.Height > 0)
-        {
-            pencere.Position = new PixelPoint((int)n.X, (int)n.Y);
-            pencere.Width = n.Width;
-            pencere.Height = n.Height;
-        }
-        else if (_pencere() is { } tam && normal is { State: (int)WindowState.Maximized })
+        if (normal is { State: (int)WindowState.Maximized } && _pencere() is { } tam)
         {
             tam.WindowState = WindowState.Maximized;
+            KucukBitir();
+        }
+        else
+        {
+            KucukBitir();
+            if (_pencere() is { } pencere && normal is { State: (int)WindowState.Normal, Width: > 0, Height: > 0 } n)
+            {
+                pencere.Position = new PixelPoint((int)n.X, (int)n.Y);
+                pencere.Width = n.Width;
+                pencere.Height = n.Height;
+            }
         }
 
         _trace.Add("birak -> normal");
