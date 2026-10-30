@@ -13,6 +13,8 @@ internal partial class RecorderView
 {
     internal Func<double?, Task<PixelRect?>> DrawRegion { get; set; } = RecorderRegionPicker.PickAsync;
 
+    internal Func<double?, Task<RecorderPick?>> PickTarget { get; set; } = RecorderRegionPicker.PickTargetAsync;
+
     internal Func<IReadOnlyList<string>> ListWindows { get; set; } = RecorderWindows.Titles;
 
     internal Func<IReadOnlyList<ScreenBounds>>? ScreenSource { get; set; }
@@ -179,7 +181,12 @@ internal partial class RecorderView
                 : -1;
         });
 
-    internal async Task<bool> DrawRegionAsync()
+    internal Task<bool> DrawRegionAsync()
+        => PickAsync(async ratio => await DrawRegion(ratio) is { } rect ? new RecorderPick(RecorderTargetKind.Region, rect) : null);
+
+    internal Task<bool> ChooseTargetAsync() => PickAsync(PickTarget);
+
+    private async Task<bool> PickAsync(Func<double?, Task<RecorderPick?>> pick)
     {
         if (_session is not null || CountingDown) return false;
 
@@ -188,15 +195,29 @@ internal partial class RecorderView
         if (EditingRegion) CloseRegionEditor();
         if (host is not null) host.WindowState = WindowState.Minimized;
 
-        PixelRect? drawn = null;
-        try { drawn = await DrawRegion(RegionDraw.Ratio(SelectedAspect)); }
+        RecorderPick? picked = null;
+        try { picked = await pick(RegionDraw.Ratio(SelectedAspect)); }
         finally
         {
-            var keepMinimized = RegionEditorEnabled && drawn is { } d && RegionDraw.Usable(d);
+            var keepMinimized = RegionEditorEnabled && picked is { Kind: RecorderTargetKind.Region } d && RegionDraw.Usable(d.Rect);
             if (host is not null && !keepMinimized) host.WindowState = state;
         }
 
-        if (drawn is not { } rect || !RegionDraw.Usable(rect)) return false;
+        switch (picked)
+        {
+            case { Kind: RecorderTargetKind.Screen } screen:
+                if (screen.Screen >= 0 && screen.Screen < CmbScreen.ItemCount) CmbScreen.SelectedIndex = screen.Screen;
+                CmbTarget.SelectedIndex = (int)RecorderTargetKind.Screen;
+                StoreChoices();
+                return true;
+            case { Kind: RecorderTargetKind.Window, WindowTitle: { Length: > 0 } title }:
+                TxtWindowTitle.Text = title;
+                CmbTarget.SelectedIndex = (int)RecorderTargetKind.Window;
+                StoreChoices();
+                return true;
+        }
+
+        if (picked is not { Kind: RecorderTargetKind.Region, Rect: var rect } || !RegionDraw.Usable(rect)) return false;
 
         WriteRegion(rect);
         CmbTarget.SelectedIndex = (int)RecorderTargetKind.Region;

@@ -112,7 +112,7 @@ internal partial class RecorderView
         if (mini is null) return false;
 
         mini.Hide();
-        try { return await DrawRegionAsync(); }
+        try { return await ChooseTargetAsync(); }
         finally
         {
             if (ReferenceEquals(_mini, mini))

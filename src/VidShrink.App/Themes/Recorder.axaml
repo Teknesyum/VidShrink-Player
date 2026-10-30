@@ -127,6 +127,9 @@
   <Thickness x:Key="RecorderFrameBorder">2</Thickness>
   <x:Double x:Key="RecorderFrameThickness">2</x:Double>
   <x:Double x:Key="RecorderPickerScrimOpacity">0.5</x:Double>
+  <StaticResource x:Key="RecorderPickerBarGap" ResourceKey="SpaceXl"/>
+  <x:Double x:Key="RecorderCompactWindowWidth">640</x:Double>
+  <x:Double x:Key="RecorderCompactWindowHeight">720</x:Double>
   <x:Double x:Key="RecorderRegionHandle">12</x:Double>
   <x:Double x:Key="RecorderRegionGrip">4</x:Double>
   <x:Double x:Key="RecorderRegionToolbarGap">4</x:Double>

@@ -39,6 +39,44 @@ internal static class RecorderWindows
         return shown;
     }
 
+    internal static IReadOnlyList<(string Title, PixelRect Frame)> Titled(IEnumerable<WindowEntry> windows, int ownProcessId)
+        => windows
+            .Where(w => w.Visible && !w.Cloaked && !w.ToolWindow && !w.Minimized && w.ProcessId != ownProcessId
+                        && w.Title.Trim().Length > 0 && w.Frame.Width > 0 && w.Frame.Height > 0)
+            .Select(w => (w.Title.Trim(), w.Frame))
+            .ToList();
+
+    internal static (string Title, PixelRect Frame)? At(IReadOnlyList<(string Title, PixelRect Frame)> windows, PixelPoint point)
+    {
+        foreach (var w in windows)
+            if (Inside(w.Frame, point)) return w;
+        return null;
+    }
+
+    internal static bool Inside(PixelRect r, PixelPoint p)
+        => p.X >= r.X && p.X < r.Right && p.Y >= r.Y && p.Y < r.Bottom;
+
+    internal static IReadOnlyList<(string Title, PixelRect Frame)> TitledFrames(IReadOnlyList<(PixelRect Bounds, double Scale)> screens)
+    {
+        try
+        {
+            if (OperatingSystem.IsWindows()) return Titled(Enumerate(), Environment.ProcessId);
+            if (OperatingSystem.IsMacOS())
+                return RecorderWindowsMac.List()
+                    .Select(w => (w.Title, Frame: FromPoints(w, screens)))
+                    .Where(w => w.Frame is not null)
+                    .Select(w => (w.Title, w.Frame!.Value))
+                    .ToList();
+            return Desktop()
+                .Select(w => (w.Title, new PixelRect((int)w.X, (int)w.Y, (int)w.Width, (int)w.Height)))
+                .ToList();
+        }
+        catch (Exception)
+        {
+            return Array.Empty<(string, PixelRect)>();
+        }
+    }
+
     internal static PixelRect? FromPoints(DesktopWindow window, IReadOnlyList<(PixelRect Bounds, double Scale)> screens)
     {
         var centerX = window.X + window.Width / 2;

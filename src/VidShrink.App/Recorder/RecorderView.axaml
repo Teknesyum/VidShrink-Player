@@ -97,12 +97,12 @@
             <SarilanMetin x:Name="TxtElapsed" Theme="{StaticResource PlanFactValue}"/>
           </StackPanel>
 
-          <StackPanel>
+          <StackPanel x:Name="StatFrames">
             <SarilanMetin Text="{loc:Text recorder.strip.frames}" Theme="{StaticResource PlanFactLabel}" MinWidth="0" TextWrapping="Wrap"/>
             <SarilanMetin x:Name="TxtFrames" Theme="{StaticResource PlanFactValue}"/>
           </StackPanel>
 
-          <StackPanel>
+          <StackPanel x:Name="StatDropped">
             <SarilanMetin Text="{loc:Text recorder.strip.dropped}" Theme="{StaticResource PlanFactLabel}" MinWidth="0" TextWrapping="Wrap"/>
             <SarilanMetin x:Name="TxtDropped" Theme="{StaticResource PlanFactValue}"/>
           </StackPanel>
@@ -566,10 +566,34 @@
           <StackPanel Spacing="{StaticResource SpaceMd}">
             <SarilanMetin Text="{loc:Text recorder.target.title}" Theme="{StaticResource H2}"/>
 
+            <Grid x:Name="RowTargetQuick" ColumnDefinitions="*,*,*" ColumnSpacing="{StaticResource SpaceSm}">
+              <Button x:Name="BtnQuickScreen"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      MinHeight="{StaticResource RecorderButtonSize}"
+                      Theme="{StaticResource GhostButton}"
+                      Content="{loc:Text recorder.target.screen}"
+                      auto:AutomationProperties.Name="{loc:Text recorder.target.screen}"/>
+              <Button x:Name="BtnQuickWindow" Grid.Column="1"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      MinHeight="{StaticResource RecorderButtonSize}"
+                      Theme="{StaticResource GhostButton}"
+                      Content="{loc:Text recorder.target.window}"
+                      auto:AutomationProperties.Name="{loc:Text recorder.target.window}"/>
+              <Button x:Name="BtnQuickRegion" Grid.Column="2"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      MinHeight="{StaticResource RecorderButtonSize}"
+                      Theme="{StaticResource GhostButton}"
+                      Content="{loc:Text recorder.target.region}"
+                      auto:AutomationProperties.Name="{loc:Text recorder.target.region}"/>
+            </Grid>
+
             <izi:SutunIzgara MaxColumns="2" Uniform="True"
                              ColumnSpacing="{StaticResource SpaceMd}"
                              RowSpacing="{StaticResource SpaceMd}">
-              <StackPanel>
+              <StackPanel x:Name="RowTargetKind">
                 <SarilanMetin Text="{loc:Text recorder.target.what}" Theme="{StaticResource Label}"/>
                 <ComboBox x:Name="CmbTarget"
                           HorizontalAlignment="Stretch"
@@ -612,7 +636,7 @@
                           auto:AutomationProperties.Name="{loc:Text recorder.target.window-refresh}"/>
                 </Grid>
               </StackPanel>
-              <StackPanel>
+              <StackPanel x:Name="RowWindowTitle">
                 <SarilanMetin Text="{loc:Text recorder.target.window-title}" Theme="{StaticResource Label}"/>
                 <TextBox x:Name="TxtWindowTitle"
                          ToolTip.Tip="{loc:Text recorder.target.window-title-hint}"
@@ -626,7 +650,8 @@
                       Content="{loc:Text recorder.target.region-draw}"
                       ToolTip.Tip="{loc:Text recorder.target.region-draw-hint}"
                       auto:AutomationProperties.Name="{loc:Text recorder.target.region-draw}"/>
-              <izi:SutunIzgara MaxColumns="2" Uniform="True"
+              <izi:SutunIzgara x:Name="RowRegionShape"
+                               MaxColumns="2" Uniform="True"
                                ColumnSpacing="{StaticResource SpaceMd}"
                                RowSpacing="{StaticResource SpaceMd}">
                 <StackPanel>
@@ -673,7 +698,7 @@
                        TextWrapping="Wrap"
                        IsVisible="{Binding #RowRegion.IsVisible}"/>
 
-            <WrapPanel ItemSpacing="{StaticResource SpaceMd}" LineSpacing="{StaticResource SpaceSm}">
+            <WrapPanel x:Name="RowMask" ItemSpacing="{StaticResource SpaceMd}" LineSpacing="{StaticResource SpaceSm}">
               <SarilanMetin Text="{loc:Text recorder.mask.title}" Theme="{StaticResource Label}" VerticalAlignment="Center"/>
               <Button x:Name="BtnDrawMask"
                       Theme="{StaticResource GhostButton}"
@@ -689,7 +714,8 @@
                          VerticalAlignment="Center"/>
             </WrapPanel>
 
-            <izi:SutunIzgara MaxColumns="2" Uniform="True"
+            <izi:SutunIzgara x:Name="RowTiming"
+                             MaxColumns="2" Uniform="True"
                              ColumnSpacing="{StaticResource SpaceMd}"
                              RowSpacing="{StaticResource SpaceMd}">
               <StackPanel>

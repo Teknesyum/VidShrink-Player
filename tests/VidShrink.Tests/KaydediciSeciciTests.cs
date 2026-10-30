@@ -123,10 +123,10 @@ public sealed class KaydediciSeciciTests
             var view = new RecorderView(ayarYolu) { SkipAutoMeasure = true };
             view.ShrinkToMini();
             var mini = view.Mini!;
-            view.DrawRegion = _ =>
+            view.PickTarget = _ =>
             {
                 cizerkenGorunur = mini.IsVisible;
-                return Task.FromResult<PixelRect?>(new PixelRect(100, 50, 641, 361));
+                return Task.FromResult<RecorderPick?>(new RecorderPick(RecorderTargetKind.Region, new PixelRect(100, 50, 641, 361)));
             };
             var bostaDugme = mini.BtnRegion.IsVisible;
             mini.BtnRegion.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -151,6 +151,77 @@ public sealed class KaydediciSeciciTests
         Assert.False(olcu.kayittaDugme);
 
         Kapat("mini-bolge.txt");
+    }
+
+    [Fact]
+    public void MiniSeciciEkranVePencereHedefiniYazar()
+    {
+        var olcu = AyarDosyasiyla(ayarYolu => AppHost.Run(() =>
+        {
+            var view = new RecorderView(ayarYolu) { SkipAutoMeasure = true };
+            view.ShrinkToMini();
+            var mini = view.Mini!;
+            var hedef = Bul<ComboBox>(view, "CmbTarget");
+            var ekranSayisi = Bul<ComboBox>(view, "CmbScreen").ItemCount;
+
+            view.PickTarget = _ => Task.FromResult<RecorderPick?>(new RecorderPick(RecorderTargetKind.Window, new PixelRect(0, 0, 800, 600), 0, "Not Defteri"));
+            mini.BtnRegion.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var pencere = (hedef.SelectedIndex, Bul<TextBox>(view, "TxtWindowTitle").Text, mini.IsVisible);
+
+            view.PickTarget = _ => Task.FromResult<RecorderPick?>(new RecorderPick(RecorderTargetKind.Screen, new PixelRect(0, 0, 1920, 1080), ekranSayisi - 1));
+            mini.BtnRegion.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var ekran = (hedef.SelectedIndex, Bul<ComboBox>(view, "CmbScreen").SelectedIndex, mini.IsVisible);
+
+            view.PickTarget = _ => Task.FromResult<RecorderPick?>(null);
+            mini.BtnRegion.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var vazgec = hedef.SelectedIndex;
+            view.ExpandFromMini();
+            return (pencere, ekran, ekranSayisi, vazgec);
+        }));
+
+        File.WriteAllLines(Path.Combine(Kanit, "mini-hedef.txt"), new[]
+        {
+            $"pencere: hedef={olcu.pencere.Item1} baslik={olcu.pencere.Item2} mini={olcu.pencere.Item3}",
+            $"ekran: hedef={olcu.ekran.Item1} ekran={olcu.ekran.Item2}/{olcu.ekranSayisi} mini={olcu.ekran.Item3}",
+            $"vazgec: hedef={olcu.vazgec}"
+        });
+
+        Assert.Equal(((int)RecorderTargetKind.Window, "Not Defteri", true), olcu.pencere);
+        Assert.Equal((int)RecorderTargetKind.Screen, olcu.ekran.Item1);
+        Assert.Equal(olcu.ekranSayisi - 1, olcu.ekran.Item2);
+        Assert.True(olcu.ekran.Item3);
+        Assert.Equal((int)RecorderTargetKind.Screen, olcu.vazgec);
+
+        Kapat("mini-hedef.txt");
+    }
+
+    [Fact]
+    public void SeciciEkranSirasiniNoktadanBulur()
+    {
+        var ekranlar = new[] { new PixelRect(0, 0, 1920, 1080), new PixelRect(1920, 0, 2560, 1440) };
+        Assert.Equal(0, RecorderRegionPicker.ScreenAt(ekranlar, new PixelPoint(10, 10)));
+        Assert.Equal(1, RecorderRegionPicker.ScreenAt(ekranlar, new PixelPoint(1920, 5)));
+        Assert.Null(RecorderRegionPicker.ScreenAt(ekranlar, new PixelPoint(-5, 5)));
+    }
+
+    [Fact]
+    public void PencereSecimiUstteOlaniDondurur()
+    {
+        var pencereler = RecorderWindows.Titled(new[]
+        {
+            new WindowEntry("  Üst  ", true, false, false, 7, false, new PixelRect(100, 100, 400, 300)),
+            new WindowEntry("Araç", true, false, true, 7, false, new PixelRect(0, 0, 2000, 2000)),
+            new WindowEntry("Kendi", true, false, false, 1, false, new PixelRect(0, 0, 2000, 2000)),
+            new WindowEntry("Alt", true, false, false, 7, false, new PixelRect(0, 0, 1000, 800))
+        }, ownProcessId: 1);
+
+        Assert.Equal(new[] { "Üst", "Alt" }, pencereler.Select(p => p.Title));
+        Assert.Equal("Üst", RecorderWindows.At(pencereler, new PixelPoint(150, 150))?.Title);
+        Assert.Equal("Alt", RecorderWindows.At(pencereler, new PixelPoint(50, 50))?.Title);
+        Assert.Null(RecorderWindows.At(pencereler, new PixelPoint(1500, 50)));
     }
 
     /// <summary>
@@ -239,7 +310,7 @@ public sealed class KaydediciSeciciTests
             var ekran = secici.Screens.ScreenCount;
             secici.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Escape });
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            return (masaustu, konum, genislik, ekran, bitti: secici.Result.IsCompleted, sonuc: secici.Result.IsCompleted ? secici.Result.Result : new PixelRect(1, 1, 1, 1), acik: secici.IsVisible);
+            return (masaustu, konum, genislik, ekran, bitti: secici.Result.IsCompleted, sonuc: secici.Result.IsCompleted ? secici.Result.Result : new RecorderPick(RecorderTargetKind.Region, new PixelRect(1, 1, 1, 1)), acik: secici.IsVisible);
         });
 
         File.WriteAllLines(Path.Combine(Kanit, "cizim-penceresi.txt"), new[] { $"ekran={olcu.ekran} masaustu={olcu.masaustu} konum={olcu.konum} genislik={olcu.genislik} esc: bitti={olcu.bitti} sonuc={olcu.sonuc} acik={olcu.acik}" });

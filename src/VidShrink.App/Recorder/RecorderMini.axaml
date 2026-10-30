@@ -77,7 +77,7 @@
                 Theme="{StaticResource AccentButton}"
                 Content="{loc:Text recorder.mini.region}"
                 auto:AutomationProperties.Name="{loc:Text recorder.mini.region}"
-                ToolTip.Tip="{loc:Text recorder.target.region-draw-hint}"
+                ToolTip.Tip="{loc:Text recorder.mini.pick-hint}"
                 Click="OnRegion"/>
       </StackPanel>
 
