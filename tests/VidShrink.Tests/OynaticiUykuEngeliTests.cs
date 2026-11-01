@@ -133,7 +133,7 @@ public sealed class OynaticiUykuEngeliTests
     }
 
     [Fact]
-    public void IkiOynaticidanBiriDuraklayincaEngelKalkmaz()
+    public void IkinciOynaticiBaslayincaIlkiDuraklarEngelTekSahipteKalir()
     {
         AppHost.Run(() =>
         {
@@ -141,14 +141,16 @@ public sealed class OynaticiUykuEngeliTests
             var engel = new UykuEngeli(sahte);
             var bir = Ac("bir", sahte, out var p1, engel);
             var iki = Ac("iki", sahte, out var p2, engel);
-            Assert.Equal(2, engel.SahipSayisi);
-
-            iki.Apply(new PlayerCommand(PlayerCommandKind.TogglePlay, 0));
+            Assert.Equal(1, engel.SahipSayisi);
             Assert.True(sahte.Tutuluyor);
 
-            bir.Apply(new PlayerCommand(PlayerCommandKind.TogglePlay, 0));
+            iki.Apply(new PlayerCommand(PlayerCommandKind.TogglePlay, 0));
             Assert.False(sahte.Tutuluyor);
-            Assert.Equal(1, sahte.Alinan);
+            Assert.Equal(0, engel.SahipSayisi);
+
+            bir.Apply(new PlayerCommand(PlayerCommandKind.TogglePlay, 0));
+            Assert.True(sahte.Tutuluyor);
+            Assert.Equal(1, engel.SahipSayisi);
             Kapat(bir, p1, "bir");
             Kapat(iki, p2, "iki");
         });

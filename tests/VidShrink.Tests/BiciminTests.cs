@@ -1748,7 +1748,7 @@ public sealed class BaslikKapsamiTests
         _cikti.WriteLine($"SAYIM	gezilen	{gezilen}");
         _cikti.WriteLine($"SAYIM	kayip	{kayip.Count}");
 
-        Assert.Equal(95460, gezilen);
+        Assert.Equal(95589, gezilen);
         Assert.Empty(kayip);
     }
 
