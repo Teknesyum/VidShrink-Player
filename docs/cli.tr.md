@@ -23,6 +23,11 @@ izliyor, Türkçe ya da İngilizce. `--dil en` (`--lang en`) tek koşumluk olara
 bilinen kodlar `en` ve `tr`, tanınmayan kod sessizce İngilizce'ye düşmek yerine kullanım hatası
 veriyor.
 
+`--olcerek-ara` (`--search-by-measure`) `--kalite` ile çalışıyor: Gelişmiş paneldeki "Ölçerek
+ara" kutusu gibi modelin hedefinden başlıyor, kısa örnekler kodlayıp ölçüyor, en çok 4 tur;
+plan puanı tutan boyutu alıyor. Varsayılan kapalı; libvmaf yoksa modelin hedefi kalıyor. Turlar
+stderr'e (`--json` ile `"type":"search"`), sonuç planın `search` alanına gidiyor.
+
 `--crf N` ve `--on-ayar AD`, pencerede Gelişmiş panelinin kilitlediğini kilitliyor: kalite
 değeri (0-63) ve kodlayıcı ön ayarı. Ön ayar adı planın seçtiği kodeğe ait olmalı —
 x264/x265 için `slow`, NVENC için `p5`, SVT-AV1 için `8` — ait olmayan ad hata vermiyor,
@@ -114,6 +119,7 @@ bunların tek yazımı var.
 | `--ses-drc` | `--drc` |
 | `--profiller` | `--presets` |
 | `--olcumsuz` | `--no-measure` |
+| `--olcerek-ara` | `--search-by-measure` |
 | `--hizli` | `--fast` |
 | `--oncelik` | `--priority` |
 | `--is-parcacigi` | `--threads` |

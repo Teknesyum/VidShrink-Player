@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -70,6 +70,13 @@ public sealed class CliServices
         = (job, output, dropMetadata, ct) => EditExportRunner.PrepareAsync(job, output, dropMetadata, ct);
 
     public Func<VidShrink.Core.Editing.ExportPlan, IProgress<EncodeProgress>, CancellationToken, Task> EditRun { get; init; } = EditExportRunner.RunAsync;
+
+    /// <summary><c>--olcerek-ara</c>'nin olceri hazir mi; ffmpeg'de libvmaf yoksa arama kosmaz, modelin hedefi kalir.</summary>
+    public Func<bool> MeterAvailable { get; init; } = () => QualityMeasurement.Instance.IsAvailable;
+
+    /// <summary><c>--olcerek-ara</c>'nin aramasi; varsayilani pencerenin kosturdugu <see cref="QualitySearchSampler.RunAsync"/>.</summary>
+    public Func<CliDecision, double, IEncoderAvailability?, IProgress<QualitySearchRound>, CancellationToken, Task<QualitySearchResult>> QualitySearch { get; init; }
+        = CliApp.DefaultQualitySearch;
 }
 
 public sealed record CliDecision(
@@ -84,6 +91,9 @@ public sealed record CliDecision(
 {
     public double TargetMb => Options.TargetMb;
     public EncodePlan Plan => Result.Plan;
+
+    /// <summary><c>--olcerek-ara</c> kostuysa aramanin sonucu; hedef ondan gelir, olcum dustuyse modelin hedefi kalir.</summary>
+    public QualitySearchResult? Search { get; init; }
 }
 
 public static class CliApp
@@ -358,6 +368,8 @@ public static class CliApp
         var decision = request.SkipMeasurement
             ? Decide(request, info, null, null, availability)
             : await MeasureAndDecideAsync(request, info, availability, stderr, text, ct);
+        if (request.SearchByMeasure && request.Quality is { } istenenKalite)
+            decision = await SearchAsync(request, decision, istenenKalite, availability, services, stderr, text, ct);
 
         if (PathEquals(decision.OutputPath, info.FilePath))
         {
@@ -515,6 +527,12 @@ public static class CliApp
             target = rounded > 0 ? rounded : qualityTarget.TargetMb;
         }
 
+        return Finish(request, info, settled, scenes, qualityTarget, target, availability);
+    }
+
+    private static CliDecision Finish(CliRequest request, MediaInfo info, ComplexityProfile settled, SceneMapAttempt? scenes,
+        QualityTargetResult? qualityTarget, double target, IEncoderAvailability? availability)
+    {
         var options = request.ToPlanOptions(target, info.DurationSeconds);
         var result = ShrinkEngine.Decide(info, options, settled, availability);
         var extension = PresetLibrary.DeliveredExtension(request.Profile?.Container)
@@ -554,6 +572,39 @@ public static class CliApp
 
         return Decide(request, info, profile, scenes, availability);
     }
+
+    /// <summary>
+    /// <c>--olcerek-ara</c>: modelin kalite hedefinden baslayip kisa ornek kodlamalari olcerek en cok
+    /// <see cref="MeasuredQualitySearch.MaxRounds"/> tur arar; olcum alinamazsa karar degismez.
+    /// </summary>
+    public static async Task<CliDecision> SearchAsync(CliRequest request, CliDecision decision, double quality,
+        IEncoderAvailability? availability, CliServices services, TextWriter stderr, CliText text, CancellationToken ct)
+    {
+        if (!services.MeterAvailable())
+        {
+            stderr.WriteLine(text["search.no-meter"]);
+            return decision;
+        }
+
+        CliProgress.Stage(stderr, text, "progress.search", request.Json);
+        var result = await services.QualitySearch(decision, quality, availability, new CliProgress.Search(stderr, text, request.Json), ct);
+        var searched = result.MeasuredQuality is null
+            ? decision
+            : Finish(request, decision.Info, decision.Profile, decision.Scenes, decision.QualityTarget, result.TargetMb, availability);
+        return searched with { Search = result };
+    }
+
+    public static Task<QualitySearchResult> DefaultQualitySearch(CliDecision decision, double quality,
+        IEncoderAvailability? availability, IProgress<QualitySearchRound> progress, CancellationToken ct)
+        => QualitySearchSampler.RunAsync(decision.Info, decision.Options, quality, decision.TargetMb, decision.Profile, availability,
+            ShrinkEngine.ProbeMeter(decision.Scenes?.Map), decision.Options.SpeedMode, decision.Scenes?.Map, progress, ct,
+            decision.Options.EncoderThreads);
+
+    internal static string? SearchLine(CliDecision decision, CliText text)
+        => decision.Search is not { } search ? null
+            : search.MeasuredQuality is { } measured
+                ? text.Format("plan.search", Num(search.TargetMb, "0.##", text), search.SearchRounds.Count, Num(measured, "0.0", text), Num(search.RequestedQuality, "0.#", text))
+                : text["plan.search-failed"];
 
     public static int ExitCodeFor(EncodeResult result)
         => result.CeilingExceeded ? ExitCodes.CeilingExceeded
@@ -612,6 +663,7 @@ public static class CliApp
             builder.AppendLine(text.Format("plan.quality-target", Num(quality.RequestedQuality, "0.#", text), Num(decision.TargetMb, "0.#", text), quality.Bound));
         else
             builder.AppendLine(text.Format("plan.target", Num(decision.TargetMb, "0.##", text)));
+        if (SearchLine(decision, text) is { } arama) builder.AppendLine(arama);
         builder.AppendLine(text.Format("plan.video", plan.Codec, plan.Mode, plan.Width, plan.Height, Num(plan.Fps, "0.##", text), plan.VideoBitrateK));
         foreach (var note in EncoderNotes(plan, text)) builder.AppendLine(note);
         if (FrameRateText(info, plan, text) is { } kare) builder.AppendLine(kare);
@@ -786,6 +838,7 @@ public static class CliApp
         if (result.Success && PassThroughNote(decision, text) is { } kept) builder.AppendLine(kept);
         builder.AppendLine(VmafLine(vmaf, text));
         builder.AppendLine(text.Format("result.predicted", Num(decision.Result.PredictedQuality, "0.0", text), Basis(decision.Result.Estimate.Measured, text)));
+        if (SearchLine(decision, text) is { } arama) builder.AppendLine(arama);
         if (vmaf?.Alignment is { } alignment && alignment.Shifted)
             builder.AppendLine(text.Format("result.alignment", Num(alignment.ShiftMilliseconds, "0.###", text), Num(alignment.ShiftFrames, "0.###", text)));
         if (result.Success && result.UnderBand) builder.AppendLine(text["result.under-band"]);
@@ -913,6 +966,25 @@ public static class CliApp
         writer.WriteNumber("targetMb", decision.TargetMb);
         if (request.Quality is { } quality) writer.WriteNumber("requestedQuality", quality); else writer.WriteNull("requestedQuality");
         if (decision.QualityTarget is { } bound) writer.WriteString("qualityBound", bound.Bound.ToString()); else writer.WriteNull("qualityBound");
+        if (decision.Search is { } search)
+        {
+            writer.WriteStartObject("search");
+            writer.WriteNumber("targetMb", Math.Round(search.TargetMb, 3));
+            if (search.MeasuredQuality is { } measured) writer.WriteNumber("measuredQuality", Math.Round(measured, 2)); else writer.WriteNull("measuredQuality");
+            writer.WriteBoolean("converged", search.Converged);
+            writer.WriteStartArray("rounds");
+            foreach (var round in search.SearchRounds)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("round", round.Round);
+                writer.WriteNumber("targetMb", Math.Round(round.TargetMb, 3));
+                if (round.MeasuredQuality is { } score) writer.WriteNumber("measuredQuality", Math.Round(score, 2)); else writer.WriteNull("measuredQuality");
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        else writer.WriteNull("search");
         writer.WriteStartObject("source");
         writer.WriteNumber("sizeMb", Math.Round(info.FileSizeMb, 3));
         writer.WriteNumber("durationSeconds", info.DurationSeconds);

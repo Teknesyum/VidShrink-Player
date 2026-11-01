@@ -22,6 +22,12 @@ language, Turkish or English. `--dil en` (`--lang en`) overrides it for one run;
 known codes are `en` and `tr`, and an unknown code is a usage error rather than a silent
 fall back to English.
 
+`--olcerek-ara` (`--search-by-measure`) works with `--kalite`: like the Advanced panel's
+"Search by measuring" box it starts from the model's target, encodes short samples and
+measures them, at most 4 rounds, and the plan takes the size that met the score. Off by
+default; without libvmaf the model's target is kept. Rounds go to stderr (`"type":"search"`
+with `--json`), the result to the plan's `search` field.
+
 `--crf N` and `--on-ayar NAME` lock what the Advanced panel locks in the window: the
 quality value (0-63) and the encoder preset. The preset name has to belong to the codec
 the plan picks — `slow` for x264/x265, `p5` for NVENC, `8` for SVT-AV1 — and a name that
@@ -112,6 +118,7 @@ single spelling.
 | `--ses-drc` | `--drc` |
 | `--profiller` | `--presets` |
 | `--olcumsuz` | `--no-measure` |
+| `--olcerek-ara` | `--search-by-measure` |
 | `--hizli` | `--fast` |
 | `--oncelik` | `--priority` |
 | `--is-parcacigi` | `--threads` |

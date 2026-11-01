@@ -30,7 +30,7 @@ public static class CliCompletion
         "--ses-temizle", "--denoise", "--ses-normal", "--loudnorm", "--yan-altyazi", "--sidecar-subtitles",
         "--ses-degistir", "--replace-audio", "--yak-kutu", "--burn-box", "--altyazi-tara", "--subtitle-scan",
         "--meta-yok", "--no-metadata", "--ilk-altyazi", "--first-subtitle", "--sabit-kare", "--cfr", "--tavan-kare", "--pfr",
-        "--json", "--olcumsuz", "--no-measure", "--vmaf", "--hizli", "--fast"
+        "--json", "--olcumsuz", "--no-measure", "--vmaf", "--olcerek-ara", "--search-by-measure", "--hizli", "--fast"
     };
 
     private static readonly string[] ShrinkValues =

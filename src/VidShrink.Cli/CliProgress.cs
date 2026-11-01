@@ -36,6 +36,36 @@ public static class CliProgress
             else writer.WriteNull("remainingSeconds");
         });
 
+    public static string SearchLine(QualitySearchRound round)
+        => Line(writer =>
+        {
+            writer.WriteString("type", "search");
+            writer.WriteNumber("round", round.Round);
+            writer.WriteNumber("maxRounds", round.MaxRounds);
+            writer.WriteNumber("targetMb", Math.Round(round.TargetMb, 3));
+            if (round.MeasuredQuality is { } score) writer.WriteNumber("measuredQuality", Math.Round(score, 2));
+            else writer.WriteNull("measuredQuality");
+        });
+
+    /// <summary><c>--olcerek-ara</c>'nin turlari: tur basinda hedef, olcumden sonra puan.</summary>
+    public sealed class Search(TextWriter stderr, CliText text, bool json) : IProgress<QualitySearchRound>
+    {
+        private readonly object _gate = new();
+
+        public void Report(QualitySearchRound value)
+        {
+            lock (_gate)
+            {
+                stderr.WriteLine(json
+                    ? SearchLine(value)
+                    : value.MeasuredQuality is { } score
+                        ? text.Format("progress.search-round-done", value.Round, value.MaxRounds,
+                            value.TargetMb.ToString("0.##", text.Culture), score.ToString("0.0", text.Culture))
+                        : text.Format("progress.search-round", value.Round, value.MaxRounds, value.TargetMb.ToString("0.##", text.Culture)));
+            }
+        }
+    }
+
     private static string Line(Action<Utf8JsonWriter> body)
     {
         using var stream = new MemoryStream();

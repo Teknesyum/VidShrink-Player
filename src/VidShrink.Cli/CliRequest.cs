@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using VidShrink.Core;
 
 namespace VidShrink.Cli;
@@ -33,6 +33,9 @@ public sealed record CliRequest
     public bool JsonLines { get; init; }
     public bool SkipMeasurement { get; init; }
     public bool MeasureVmaf { get; init; }
+
+    /// <summary><c>--olcerek-ara</c>: <c>--kalite</c>'nin hedefini en cok dort kisa ornek kodlamayla olcerek arar.</summary>
+    public bool SearchByMeasure { get; init; }
     public bool Fast { get; init; }
     public string? PreferredLanguage { get; init; }
     public double? TrimStartSeconds { get; init; }
@@ -716,6 +719,9 @@ public static class CliParser
                 case "--vmaf":
                     request = request with { MeasureVmaf = true };
                     break;
+                case "--olcerek-ara" or "--search-by-measure":
+                    request = request with { SearchByMeasure = true };
+                    break;
                 case "--hizli" or "--fast":
                     request = request with { Fast = true };
                     break;
@@ -755,6 +761,7 @@ public static class CliParser
         if (request.TargetMb is not null && request.Quality is not null) return Fail("error.target-or-quality", null);
         if (request.ProfileId is null && request.PresetFile is null && request.TargetMb is null && request.Quality is null)
             return Fail("error.target-or-quality", null);
+        if (request.SearchByMeasure && request.Quality is null) return Fail("error.search-needs-quality", null);
         return Success(request);
     }
 

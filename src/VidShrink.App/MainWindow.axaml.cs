@@ -3417,7 +3417,11 @@ public partial class MainWindow : Window
         options.ExternalSubtitles = Array.Empty<ExternalSubtitle>();
         options.ExternalAudio = null;
         options.Filters = options.Filters with { BurnSubtitle = null, BurnFont = null, BurnFontSize = null, BurnBox = false, Crop = SuzgecOku(out _).Crop };
-        return new(paths, options, !_chipSizeCapped && _info is not null, PresetLibrary.DeliveredExtension(_presetContainer), OtomatikKirpmaAcik);
+        return new(paths, options, !_chipSizeCapped && _info is not null, PresetLibrary.DeliveredExtension(_presetContainer), OtomatikKirpmaAcik)
+        {
+            IstenenKalite = _kaliteSurer && _aiPlan is null ? ParseQualityTarget() : null,
+            OlcerekAra = ChkAdvSearchByMeasure.IsChecked == true
+        };
     }
 
     /// <summary>C1-6: kaynak açıkken bırakılan altyazı dosyaları o videoya iz olarak eklenir, video sanılıp açılmaz.</summary>

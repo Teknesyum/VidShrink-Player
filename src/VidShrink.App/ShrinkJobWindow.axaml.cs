@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -933,6 +933,7 @@ public partial class ShrinkJobWindow : Window
         string? teslim = null;
         string? ayrilan = null;
         string? mesaj = null;
+        QualitySearchResult? arama = null;
         var uygulamadaAc = false;
         IDisposable? yuva = null;
         try
@@ -940,6 +941,7 @@ public partial class ShrinkJobWindow : Window
             var info = await FfprobeClient.ProbeAsync(request.Path, ct);
             var (options, targetMb) = OptionsFor(request, info);
             options = await KirpmaylaAsync(options, info, ct);
+            (options, targetMb, arama) = await AramaylaAsync(request, info, options, targetMb, tur => AramaTuru(job, tur), ct);
             job.TargetLabel = TargetLabel(targetMb);
             job.Order = sira;
             RefreshActive(false);
@@ -969,7 +971,7 @@ public partial class ShrinkJobWindow : Window
                 teslim = result.OutputPath;
                 son = ShrinkJobState.Bitti;
                 sonuc = IsSonucu.Basarili;
-                mesaj = BittiSatiri(result, targetMb, plan);
+                mesaj = BittiSatiri(result, targetMb, plan) + AramaOzeti(arama);
                 if (KaliteyiOlc && await KaliteEkiAsync(job, request.Path, result.OutputPath, ct) is { Length: > 0 } kalite)
                     mesaj += " " + kalite;
             }

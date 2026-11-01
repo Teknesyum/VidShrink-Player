@@ -9,6 +9,10 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+### Added
+
+- The command line can search the quality target by measuring: `--olcerek-ara` (`--search-by-measure`) with `--kalite` runs at most four short sample encodes and plans at the size that reached the score; the shrink queue runs the same search when the main window's quality drives the target and "Search by measuring" is on.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

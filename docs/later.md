@@ -347,7 +347,7 @@ Karar (21 Ekim 2026, sahip): evet; 109 ölçümünden sonra başlar. 139'da ses 
 13 Ekim 2026 · SIK-P11 · Küçült · iş orta · öncelik 3
 
 - Yapıldı (20 Ekim 2026): Gelişmiş'te "Ölçerek ara" (varsayılan kapalı, en çok 4 tur, tur ilerlemede); çekirdek `src/VidShrink.Core/BracketSearch.cs` ve `MeasuredQualitySearch.cs`, örnekleyici `src/VidShrink.Ffmpeg/QualitySearchSampler.cs`, ölçüm `docs/olcumler/olcerek-arama.md`.
-- Kalan 1: CLI'a bağlanmadı (`src/VidShrink.Cli/CliApp.cs`); ShrinkJobWindow kuyruğu da aramayı koşturmuyor.
+- Yapıldı (1 Kasım 2026): Kalan 1 kapandı. CLI'da `--olcerek-ara` / `--search-by-measure` (varsayılan kapalı, `--kalite` ister, en çok 4 tur, turlar stderr'de; ölçer yoksa uyarı verip modelin hedefini tutar). ShrinkJobWindow kuyruğu, ana pencerede hedefi kalite sürüyor ve kutu açıksa her dosyayı kendi kalite hedefinden başlayarak arar; elle düzenlenen ve defterden dönen iş aranmaz. Testler `tests/VidShrink.Tests/OlcerekAramaBaglantiTests.cs`.
 - Kalan 2: Sabit dosya kümesinde tahmin yolu ile arama yolu yan yana ölçülmedi; tek sentetik klip, iki puan var. Küçük hedefte puan MB ile tekdüze değil (70 hedefinde 4 turda yakınsamadı), kıskaç tekdüzelik varsayıyor.
 - Kalan 3: Örnek kodlama tek geçişli; iki geçişli gerçek kodlamayla farkı ölçülmedi.
 
