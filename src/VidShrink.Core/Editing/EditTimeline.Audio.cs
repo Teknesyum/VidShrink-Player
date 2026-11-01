@@ -107,7 +107,9 @@ public sealed partial class EditTimeline
 
     public EditTimeline ForExport()
     {
-        var clips = Audible(EditTrack.Video) ? _clips.ToArray() : _clips.Select(c => c with { Effects = c.Effects with { Muted = true } }).ToArray();
+        var audible = Audible(EditTrack.Video);
+        var shown = Visible(EditTrack.Video);
+        var clips = _clips.Select(c => c with { Effects = Seen(Heard(c.Effects, audible), shown) }).ToArray();
         var copy = new EditTimeline(clips, texts: Visible(EditTrack.Text) ? _texts.ToArray() : null, frame: Frame, layers: Layers.ToArray())
         {
             Music = Audible(EditTrack.Music) ? Music : null,
@@ -115,6 +117,25 @@ public sealed partial class EditTimeline
         };
         return copy;
     }
+
+    /// <summary>
+    /// Onizlemenin gordugu cizelge: V1 gizli degilse kendisi, gizliyse V1 parcalari <see cref="ClipEffects.Blackout"/> ile kararmis bir kopya.
+    /// Yazi, katman, muzik ve ses parcalari aynen kalir; sesi motor ayrica susturur.
+    /// </summary>
+    public EditTimeline Shown()
+    {
+        if (Visible(EditTrack.Video)) return this;
+        var clips = _clips.Select(c => c with { Effects = c.Effects.Blackout() }).ToArray();
+        return new EditTimeline(clips, texts: _texts.ToArray(), frame: Frame, layers: Layers.ToArray())
+        {
+            Music = Music,
+            _audioClips = _audioClips
+        };
+    }
+
+    private static ClipEffects Heard(ClipEffects effects, bool audible) => audible ? effects : effects with { Muted = true };
+
+    private static ClipEffects Seen(ClipEffects effects, bool shown) => shown ? effects : effects.Blackout();
 
     private void SetAudioList(IReadOnlyList<EditAudioClip> clips) => _audioClips = clips;
 

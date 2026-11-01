@@ -19,7 +19,7 @@ public static class EditTracks
 
     public static bool HasSound(EditTrack track) => track is EditTrack.Video or EditTrack.Music or EditTrack.Audio;
 
-    public static bool CanHide(EditTrack track) => track == EditTrack.Text;
+    public static bool CanHide(EditTrack track) => track is EditTrack.Video or EditTrack.Text;
 
     public static string Name(EditTrack track) => track switch
     {

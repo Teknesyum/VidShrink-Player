@@ -122,7 +122,7 @@ internal partial class EditorView : UserControl
         _resumeClock = false;
         if (Preview.IsPlaying) Preview.TogglePlay();
         _driver?.Pause();
-        MusicPlayer.Pause();
+        PauseSound();
         FlushProject();
     }
 
@@ -409,7 +409,7 @@ internal partial class EditorView : UserControl
     {
         if (_driver is not { } driver)
         {
-            MusicPlayer.Pause();
+            PauseSound();
             return;
         }
 

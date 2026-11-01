@@ -236,6 +236,14 @@ public sealed partial class MpvEngine
         KeepMeterLast();
     }
 
+    public bool SetEditAudioVolume(double db)
+    {
+        if (_editAudio is null || !double.IsFinite(db)) return false;
+        return CommandSync("af-command", ClipAudioLabel, "volume", db.ToString("0.0#", CultureInfo.InvariantCulture) + "dB", "volume") >= 0;
+    }
+
+    public bool SetPlayDirection(bool backward) => TrySet("play-direction", backward ? "backward" : "forward");
+
     /// <summary>
     /// Ses zincirinin sonuna <c>astats</c> halkasi koyar; tepe duzeyi her ses cercevesinde
     /// <c>af-metadata/vsmeter</c> altina yazilir, <see cref="AudioPeakDb"/> oradan okur.

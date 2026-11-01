@@ -228,6 +228,15 @@ public interface IPlaybackEngine : IDisposable
     /// <summary>Duzenleyicinin EDL zamaninda <c>enable</c> pencereli solma ve ses zincirleri; <c>null</c> kaldirir.</summary>
     void SetEditTimed(string? video, string? audio) { }
 
+    /// <summary>
+    /// <see cref="SetEditTimed"/> ile konan ses zincirindeki <c>volume</c> suzgecinin duzeyini zinciri yeniden kurmadan
+    /// degistirir (dB). Zincir yoksa ya da motor komutu tasimiyorsa <c>false</c>.
+    /// </summary>
+    bool SetEditAudioVolume(double db) => false;
+
+    /// <summary>Oynatma yonunu degistirir; geri yonde ses de geri calar. Motor desteklemiyorsa <c>false</c>.</summary>
+    bool SetPlayDirection(bool backward) => false;
+
     /// <summary>Sessiz bolumleri hizlandirma kipini acar, kapatir ya da esigini degistirir.</summary>
     void SetSilenceSkip(SilenceSkip skip) { }
 

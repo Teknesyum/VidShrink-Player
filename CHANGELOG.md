@@ -9,6 +9,17 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+### Added
+
+- The editor preview now plays the A3 sound track, each clip on its own audio engine opened a second ahead.
+- The V1 track can be hidden: hidden video plays and exports as black while keeping its length and sound.
+- A locked track shows a lock icon in its header.
+
+### Changed
+
+- Automatic music ducking is now audible in the editor preview, keyed by the live level of the source sound and the A3 track.
+- The music keeps playing during backward shuttle (it plays backward) and during reversed clips instead of going silent.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

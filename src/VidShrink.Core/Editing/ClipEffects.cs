@@ -304,6 +304,13 @@ public sealed partial record ClipEffects
     public ClipEffects WithColor(ClipEffects look)
         => this with { Brightness = look.Brightness, Contrast = look.Contrast, Saturation = look.Saturation, Temperature = look.Temperature };
 
+    /// <summary>Gizli V1 icin: renk, egri, eslesme ve LUT notre doner, ustune parlaklik -1 ve kontrast 0 kareyi siyaha basar; dolgu siyah olur.
+    /// Geometri, ses ve solma kalir, boylece sure ve ses degismez.</summary>
+    public ClipEffects Blackout()
+        => WithColor(Dark).WithGrade(None).WithoutMatch() with { Lut = null, LutMix = MaxLutMix, PadColor = DefaultPadColor };
+
+    private static ClipEffects Dark { get; } = new() { Brightness = -1, Contrast = 0, Saturation = 0 };
+
     private static double Color(double value, double neutral, double min, double max)
         => double.IsFinite(value) ? Math.Round(Math.Clamp(value, min, max), 2) : neutral;
 

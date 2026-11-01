@@ -136,7 +136,8 @@ Gerekçe, sayılar ve kanıt: [plan-pazar-eksikleri.md](plan-pazar-eksikleri.md)
 - Plan: Çizelgeye A2 izi eklenir; görüntüsü olmayan dosya artık reddedilmez (EditorView.Kaynak.cs:89-93), bu ize başlangıç anı ve düzeyiyle konur. Teslimde iki ses ffmpeg `amix` süzgeciyle karıştırılır. Önizlemede iki sesi birlikte duymanın yolu ölçülmedi: mpv tek ses izi çalar, karıştırma `lavfi-complex` ister ve bunun `edl://` ile çalışması ilk iş denenir. Doğrulama: teslim dosyasında iki sesin de duyulduğunu gösteren düzey ölçümü ve proje dosyasını yazıp geri okuma testi.
 - Durum (18 Ekim 2026, `yan/muzik-izi`): A2 izi, görüntüsüz dosyanın A2'ye inmesi (oynatma başı, -12 dB), sürükleme ve sağ tık menüsü (düzey, başa taşı, değiştir, kaldır) yapıldı; model, `amix` teslimi ve proje kaydı önceden vardı.
 - Yapıldı (20 Ekim 2026): önizleme müziği çalıyor. `lavfi-complex` + `edl://` denendi ve bırakıldı (müzik EDL zamanına bağlı: hızlı klipte hızlanıyor, başlangıç anı aramada sıfırlanıyor); yerine ayrı, yalnız sesli bir motor (`App/Playback/MusicPreview`) çizelge konumuna kilitli çalıyor, düzey `af` ile, hız oynatma hızıyla. [Ölçüm](olcumler/oynatici-ortam-denetimi-ve-muzik-onizleme.md)
-- Kalan: kısma önizlemede yok (yalnız teslimde); geri ve ters oynatmada müzik susuyor; iki motor arasında 0,25 sn'ye kadar kayma kabul ediliyor.
+- Durum (1 Kasım 2026, `worktree-agent-a9988ab5271106308`): kısma önizlemede duyulur (`Core/PreviewDuck`, anahtar önizleme ve A3 motorlarının tepe ölçeri, kazanç `af-command` ile). Geri oynatma ölçüldü: mpv sesi geriye gerçek zamanlı çalıyor, müzik J ile geri sarmada geriye çalar; yönü taşımayan motorda durur ve ileri oynatmada yerinde devam eder. Ters klip ileri oynatmada müzik susmuyor. Ölçüm [oynatici-ortam-denetimi-ve-muzik-onizleme.md](olcumler/oynatici-ortam-denetimi-ve-muzik-onizleme.md), testler `OnizlemeSesYoluTests`.
+- Kalan: iki motor arasında 0,25 sn'ye kadar kayma kabul ediliyor; önizleme kısması iki durumlu bir yaklaşım, teslimdeki kompresör eğrisini birebir vermez ve 50 ms'lik bir izleme adımı geç başlayabilir.
 
 ## 105. Uygulama Başına Ses
 
@@ -328,7 +329,8 @@ Gerekçe, sayılar ve kanıt: [plan-pazar-eksikleri.md](plan-pazar-eksikleri.md)
 Karar (21 Ekim 2026, sahip): evet; 109 ölçümünden sonra başlar. 139'da ses ekleri ve iz denetimleri evet, boşluklu çizelge hayır.
 
 - Yapıldı (21 Ekim 2026, main): sesi A3 izine ayırma (DZB-10), otomatik müzik kısma (DZB-46), seslendirme kaydı (DZB-47), V1/T1/A2/A3 iz denetimleri (DZB-06); testler `DuzenleyiciSesEkleriTests`. DZB-07 kapandı.
-- Kalan: A3 önizlemede çalmıyor (yalnız teslimde duyulur), V1 gizleme yok, kilit simgesi yok, seslendirme akışı elle denenmedi.
+- Durum (1 Kasım 2026, `worktree-agent-a9988ab5271106308`): A3 önizlemede çalar (`App/Playback/SoundClipsPreview`, parça başına ayrı ölçülü motor, en çok 4, 1 sn önceden duraklatılmış açılır). V1 gizlenebilir: teslimde ve önizlemede V1 parçaları siyaha basılır (`ClipEffects.Blackout`, `EditTimeline.Shown`), süre ve ses kalır. Kilitli izin başlığında Fluent `Lock Closed` simgesi (`IconLock`). Testler `OnizlemeSesYoluTests`, `DuzenleyiciSesEkleriTests`.
+- Kalan: seslendirme akışı elle denenmedi; gizli V1 üstündeki geçiş karışımları siyah parçayla yeniden işlenir, elle görsel denetim yapılmadı.
 
 ## 140. Vekil, Hazır İçerik Ve Model
 

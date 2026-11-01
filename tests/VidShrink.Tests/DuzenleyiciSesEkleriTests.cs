@@ -154,8 +154,11 @@ public sealed class DuzenleyiciSesEkleriTests
         Assert.False(cizelge.Audible(EditTrack.Audio));
 
         Assert.False(cizelge.SetTrack(EditTrack.Text, new EditTrackState(Muted: true, Solo: true)));
+        Assert.True(cizelge.SetTrack(EditTrack.Music, new EditTrackState(Hidden: true, Locked: true)));
+        Assert.Equal(new EditTrackState(Locked: true), cizelge.Track(EditTrack.Music));
         Assert.True(cizelge.SetTrack(EditTrack.Video, new EditTrackState(Hidden: true, Locked: true)));
-        Assert.Equal(new EditTrackState(Locked: true), cizelge.Track(EditTrack.Video));
+        Assert.Equal(new EditTrackState(Hidden: true, Locked: true), cizelge.Track(EditTrack.Video));
+        Assert.False(cizelge.Visible(EditTrack.Video));
         Assert.True(cizelge.IsLocked(EditTrack.Video));
         Assert.True(cizelge.SetTrack(EditTrack.Video, default));
         Assert.False(cizelge.TrackStates.ContainsKey(EditTrack.Video));

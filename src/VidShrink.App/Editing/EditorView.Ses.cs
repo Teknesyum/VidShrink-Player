@@ -81,8 +81,11 @@ internal partial class EditorView
 
     internal bool SetTrack(EditTrack track, EditTrackState state)
     {
-        if (_model is not { } model || !model.SetTrack(track, state)) return false;
+        if (_model is not { } model) return false;
+        var shown = model.Visible(EditTrack.Video);
+        if (!model.SetTrack(track, state)) return false;
         Timeline.Refresh();
+        if (shown != model.Visible(EditTrack.Video)) _ = RestyleAsync();
         RefreshOverlay();
         if (Preview.Engine is { } engine) ApplyTrackSound(engine);
         MarkEdited();

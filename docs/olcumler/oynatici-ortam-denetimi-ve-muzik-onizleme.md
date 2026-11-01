@@ -79,4 +79,32 @@ Canlı ölçüm (`DuzenleyiciMuzikOnizlemeTests.CanliMotorAoNullIleMuzikSesiniDu
 -12 dB, `ao=null`): `audio-params/samplerate` 48000, `af` `volume=-12.0dB` içeriyor, tepe düzey -26,5 ile -33,5 dB
 arasında (sinüs kendisi yaklaşık -18 dBFS), çizelgeye kayma 0,35 sn'nin altında, oynatma durunca motor duraklıyor.
 
-Önizlemede yok: kısma (müziğin konuşma altında alçalması) yalnız teslimde.
+Bu bölümün "geri/ters oynatmada susar" kuralı ve "kısma yalnız teslimde" notu 1 Kasım 2026'da kalktı; aşağıda.
+
+## Geri Oynatmada Müzik, Önizlemede Kısma Ve A3 (1 Kasım 2026)
+
+**Geri oynatma ölçüldü, müzik susmuyor, geriye çalıyor.** Sonda: 8 sn 440 Hz AAC, `ao=null`, 6. sn'den
+`play-direction=backward`. Konum yaklaşık 2 sn'de 5,902'den 3,980'e indi (gerçek zamanlı), tepe -18 dBFS'te kaldı,
+`forward`'a dönüş çalıştı. Bu yüzden J ile geri sarmada (`driver.Backward`) müzik ve A3 motoru `SetPlayDirection(true)`
+ile geriye çalar; motor yönü taşımıyorsa (`false`) duraklar ve ileri oynatma başlayınca çizelge konumundan yerinde devam
+eder. Ters klip ileri oynatmada çizelge ileri aktığı için müzik artık susmuyor. Kalıcı canlı ölçü
+`OnizlemeSesYoluTests.CanliMotorKazancKomutuylaTepeyiDusururGeriYondeKonumGeriyeAkar`: geri yönde 0,8 sn'de konum
+5,941'den 5,129'a indi, tepe -18,1 dB.
+
+**Kısma önizlemede yaklaşık duyulur.** Teslimdeki `sidechaincompress` anahtarı kaynak sesi ve A3'tür; önizlemede bunlar
+ayrı motorlarda çaldığı için anahtar motorların `astats` tepe ölçeridir (önizleme motoru + A3 yuvaları, büyüğü).
+`Core/PreviewDuck`: eşik teslimin `threshold / level_sc` oranı, 20·log10(0,01/4) ≈ -52 dBFS; anahtar eşiği aşınca hedef
+`-DuckDb`, aşmayınca 0 dB; kazanç saldırıda 20 ms, bırakmada `DuckReleaseMs` zaman sabitiyle üstel yaklaşır. Bu bir
+kompresör değil, iki durumlu bir yaklaşımdır: teslimdeki oran 20 ve `mix` ile aynı eğriyi vermez, yalnız ne zaman ve ne
+kadar kısıldığını duyurur.
+
+Kazanç zinciri yeniden kurulmadan `af-command vsclipaudio volume <x>dB volume` ile yazılır. Hedef olarak `all` reddedildi
+(-12), süzgeç adı `volume` kabul edildi (0); aynı sondada tepe -17,7'den -30,0 dB'ye indi. Komut düşerse kazanç
+1 dB adımla `af` halkası yeniden kurularak verilir. Canlı ölçü yukarıdaki testte: 0 dB'de tepe -18,1, -12 dB komutundan
+sonra -30,1.
+
+**A3 önizlemede çalar.** `SoundClipsPreview`: o an çalan ya da 1 sn içinde başlayacak her parçaya ayrı, ölçülü bir
+`MusicPreview` yuvası (en çok 4); yaklaşan parça duraklatılmış açılır, başlayınca yerinde çalar.
+
+Kalan: motorlar arası 0,25 sn'ye kadar kayma kabul ediliyor; ölçer 50 ms'lik izleme adımında okunduğu için kısma
+teslimden en çok bir adım geç başlar.

@@ -73,6 +73,7 @@ public sealed class IkonImzaTests
         ["IconBookmark"] = "000000000ff01ff81ff81ff81ff81ff81ff81ff81ff81ff81e781c3810080000",
         ["IconRestore"] = "000007f80c0c00063fe27ff27ff27ff27ff27ff27ff67ff47ff03ff01fe00000",
         ["IconCoffee"] = "000014801680096009201ff03ff83ffe3ffa3ffa3ffe3ff01ff00fe003800000",
+        ["IconLock"] = "000003c00420042004200ff01ff81ff81ff81e781e781ff81ff81ff80ff00000",
         ["IconWarning"] = "0000018003c003c007e00f700f701f781f783ffc3e7c7ffe7ffe3ffc00000000",
     };
 

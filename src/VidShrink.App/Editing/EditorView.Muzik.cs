@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using VidShrink.App.Localization;
 using VidShrink.App.Playback;
 using VidShrink.Core;
 using VidShrink.Core.Editing;
+using VidShrink.Player;
 
 namespace VidShrink.App.Editing;
 
@@ -26,15 +28,50 @@ internal partial class EditorView
         ("editor.music.duck.slow", 1000)
     };
 
+    private readonly Stopwatch _duckClock = Stopwatch.StartNew();
+
     internal MusicPreview MusicPlayer { get; set; } = new();
+
+    internal SoundClipsPreview SoundPlayer { get; set; } = new();
+
+    internal PreviewDuck MusicDuck { get; } = new();
+
+    internal double DuckKeyDb { get; private set; } = double.NaN;
 
     private void SyncMusic(EdlPreviewDriver driver)
     {
         var engine = Preview.Engine;
         var at = driver.TimelinePosition;
-        var playing = Preview.IsPlaying && driver.Playing && !driver.Backward && driver.ReversingPart is null && _model is { } model && at < model.Duration;
-        MusicPlayer.Sync(_model?.Music, at, playing, driver.Rate, engine?.Volume ?? 100, engine?.Muted ?? false);
+        var model = _model;
+        var running = Preview.IsPlaying && driver.Playing && model is not null && at < model.Duration;
+        var volume = engine?.Volume ?? 100;
+        var muted = Preview.IsMuted;
+        SoundPlayer.Sync(model?.AudioClips ?? Array.Empty<EditAudioClip>(), at, running && model!.Audible(EditTrack.Audio), driver.Rate, volume, muted, driver.Backward);
+        var elapsed = _duckClock.Elapsed.TotalSeconds;
+        _duckClock.Restart();
+        DuckKeyDb = DuckKey(engine, driver, model);
+        var gain = MusicDuck.Step(model?.Music, DuckKeyDb, elapsed);
+        MusicPlayer.Sync(model?.Music, at, running && model!.Audible(EditTrack.Music), driver.Rate, volume, muted, driver.Backward, gain);
     }
+
+    private void PauseSound()
+    {
+        MusicPlayer.Pause();
+        SoundPlayer.Pause();
+    }
+
+    private double DuckKey(IPlaybackEngine? engine, EdlPreviewDriver driver, EditTimeline? model)
+    {
+        if (model is null) return double.NaN;
+        var source = engine is { IsPaused: false } && model.Audible(EditTrack.Video) && !driver.Backward && driver.ReversingPart is null
+            ? engine.AudioPeakDb
+            : double.NaN;
+        var narration = model.Audible(EditTrack.Audio) ? SoundPlayer.PeakDb : double.NaN;
+        return Louder(source, narration);
+    }
+
+    internal static double Louder(double a, double b)
+        => double.IsNaN(a) ? b : double.IsNaN(b) ? a : Math.Max(a, b);
 
     private void InitMusic()
     {

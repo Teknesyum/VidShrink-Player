@@ -38,7 +38,7 @@ public sealed class DuzenleyiciMuzikOnizlemeTests
         using var muzik = new MusicPreview(_ => { var m = new MuzikMotoru(); motorlar.Add(m); return m; });
         var parca = new EditMusic("muzik.mp3", S(10), S(2), -12);
 
-        muzik.Sync(parca, S(1), true, 1, 100, false);
+        muzik.Sync(parca, S(0.5), true, 1, 100, false);
         Assert.Empty(motorlar);
 
         muzik.Sync(parca, S(3), false, 1, 100, false);
@@ -71,7 +71,7 @@ public sealed class DuzenleyiciMuzikOnizlemeTests
         Assert.Equal(2.0, motor.PositionSeconds, 6);
         Assert.Equal("volume=-6.0dB", motor.Ses);
 
-        muzik.Sync(null, S(4), true, 1, 80, true);
+        muzik.Sync((EditMusic?)null, S(4), true, 1, 80, true);
         Assert.False(motor.IsOpen);
         Assert.Null(muzik.Engine);
     }
@@ -248,6 +248,20 @@ internal sealed class MuzikMotoru : IPlaybackEngine
 
     public string? Ses { get; private set; }
 
+    public int SesKurulumu { get; private set; }
+
+    public bool Yonlu { get; init; }
+
+    public bool Komutlu { get; init; }
+
+    public bool Geri { get; private set; }
+
+    public double? KomutDb { get; private set; }
+
+    public bool Olculu { get; private set; }
+
+    public double AudioPeakDb { get; set; } = double.NaN;
+
     public event EventHandler<PlaybackFault>? Faulted { add { } remove { } }
 
     public Task OpenAsync(string path, CancellationToken ct = default)
@@ -266,7 +280,31 @@ internal sealed class MuzikMotoru : IPlaybackEngine
 
     public void SetMuted(bool muted) => Muted = muted;
 
-    public void SetEditTimed(string? video, string? audio) => Ses = audio;
+    public void SetEditTimed(string? video, string? audio)
+    {
+        Ses = audio;
+        SesKurulumu++;
+    }
+
+    public bool SetEditAudioVolume(double db)
+    {
+        if (!Komutlu) return false;
+        KomutDb = db;
+        return true;
+    }
+
+    public bool SetPlayDirection(bool backward)
+    {
+        if (!Yonlu) return false;
+        Geri = backward;
+        return true;
+    }
+
+    public bool MeterAudio(bool on)
+    {
+        Olculu = on;
+        return true;
+    }
 
     public Task<SeekResult> SeekAsync(double seconds, SeekPrecision precision, CancellationToken ct = default)
     {

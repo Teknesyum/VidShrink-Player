@@ -215,7 +215,7 @@ internal sealed partial class EditorTimeline
     private void DrawTrackHeader(DrawingContext context, EditTrack track, string? icon, double top, double height, string name)
     {
         var state = _model?.Track(track) ?? default;
-        var key = state.Muted ? "IconVolumeMute" : state.Hidden ? "IconEyeOff" : icon;
+        var key = state.Muted ? "IconVolumeMute" : state.Hidden ? "IconEyeOff" : state.Locked ? "IconLock" : icon;
         var paint = state.Locked ? "TextDisabled" : state.Solo ? "NeonBlue" : "TextBody";
         DrawHeaderIcon(context, key, top, height, name, paint);
     }

@@ -60,6 +60,7 @@ public sealed class IkonKutusuTests
     /// <item><c>IconSpeedFast</c>, <c>IconSpeedSlow</c> — Fluent Top Speed kadrani, gosterge kutlesi merkezin ustunde (cy 11.00); ibre turetildi.</item>
     /// <item><c>IconSpeedFastTip</c> — hizli ibrenin turuncu ucu, yalniz IconSpeedFast'in ustune bindirilir; kendi basina ortalanmaz.</item>
     /// <item><c>IconCoffee</c> — kulp sagda 2 birimlik kenar payini tasiyor (sag kenar 23.00).</item>
+    /// <item><c>IconLock</c> — Fluent Lock Closed, kilit halkasi ust kenar payina tasiyor (ust 1.00, cy 11.50).</item>
     /// </list>
     /// </summary>
     private static readonly Dictionary<string, (double Left, double Top, double Right, double Bottom)> Istisna = new()
@@ -67,7 +68,8 @@ public sealed class IkonKutusuTests
         ["IconSpeedFast"] = (2.00, 2.00, 22.00, 20.00),
         ["IconSpeedFastTip"] = (14.37, 7.80, 18.47, 11.39),
         ["IconSpeedSlow"] = (2.00, 2.00, 22.00, 20.00),
-        ["IconCoffee"] = (3.00, 2.00, 23.00, 22.00)
+        ["IconCoffee"] = (3.00, 2.00, 23.00, 22.00),
+        ["IconLock"] = (4.00, 1.00, 20.00, 22.00)
     };
 
     private const double IstisnaSlop = 0.02;
