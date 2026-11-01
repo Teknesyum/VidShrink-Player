@@ -30,7 +30,13 @@ public static class AutoZoom
 
     public const double MinRegionSeconds = 0.8;
 
+    public const double PanGapSeconds = 1.0;
+
+    public const double PanSeconds = 0.6;
+
     public const int MaxRegions = 60;
+
+    public const int MaxPerspectiveLength = 24000;
 
     public const string TargetSuffix = "-zoom";
 
@@ -94,6 +100,113 @@ public static class AutoZoom
 
     public static double ClampScale(double scale) => double.IsFinite(scale) ? Math.Clamp(scale, MinScale, MaxScale) : DefaultScale;
 
+    private sealed record Pan(double From, double Length, double Dx, double Dy);
+
+    private sealed record Shot(double Start, double End, double Ramp, double X, double Y, List<Pan> Pans);
+
+    private static List<Shot> Shots(IReadOnlyList<ZoomRegion> regions)
+    {
+        var shots = new List<Shot>();
+        ZoomRegion? previous = null;
+        foreach (var region in regions.Where(r => double.IsFinite(r.Start) && double.IsFinite(r.End) && r.End > r.Start).OrderBy(r => r.Start))
+        {
+            var x = Math.Clamp(region.CenterX, 0, 1);
+            var y = Math.Clamp(region.CenterY, 0, 1);
+            if (previous is { } last && region.Start - last.End <= PanGapSeconds)
+            {
+                var shot = shots[^1];
+                var mid = (last.End + region.Start) / 2;
+                var half = Math.Min(PanSeconds / 2, Math.Min(mid - (last.Start + last.End) / 2, (region.Start + region.End) / 2 - mid));
+                var fromX = shot.X + shot.Pans.Sum(pan => pan.Dx);
+                var fromY = shot.Y + shot.Pans.Sum(pan => pan.Dy);
+                if (half > 0) shot.Pans.Add(new Pan(mid - half, 2 * half, x - fromX, y - fromY));
+                var end = Math.Max(shot.End, region.End);
+                shots[^1] = shot with { End = end, Ramp = Math.Min(RampSeconds, (end - shot.Start) / 2) };
+            }
+            else
+            {
+                shots.Add(new Shot(region.Start, region.End, Math.Min(RampSeconds, region.Length / 2), x, y, new List<Pan>()));
+            }
+
+            previous = region;
+        }
+
+        return shots;
+    }
+
+    private static double Smooth(double value)
+    {
+        var v = Math.Clamp(value, 0, 1);
+        return v * v * (3 - 2 * v);
+    }
+
+    /// <summary>
+    /// <see cref="Filter"/>'ın <paramref name="time"/> anında uyguladığı yakınlık ve görüntü merkezi (0–1). Aralarında
+    /// <see cref="PanGapSeconds"/>'tan az boşluk olan bölgeler tek çekimdir: yakınlık bırakılmaz, merkez sınırın
+    /// ortasında <see cref="PanSeconds"/> içinde yumuşakça kayar.
+    /// </summary>
+    public static (double Zoom, double CenterX, double CenterY) At(IReadOnlyList<ZoomRegion> regions, double scale, double time)
+    {
+        ArgumentNullException.ThrowIfNull(regions);
+        var amount = ClampScale(scale) - 1;
+        foreach (var shot in Shots(regions))
+        {
+            if (time < shot.Start || time >= shot.End) continue;
+            var rise = Math.Clamp((time - shot.Start) / shot.Ramp, 0, 1) * Math.Clamp((shot.End - time) / shot.Ramp, 0, 1);
+            var x = shot.X;
+            var y = shot.Y;
+            foreach (var pan in shot.Pans)
+            {
+                var k = Smooth((time - pan.From) / pan.Length);
+                x += pan.Dx * k;
+                y += pan.Dy * k;
+            }
+
+            return (1 + amount * Smooth(rise), x, y);
+        }
+
+        return (1, 0.5, 0.5);
+    }
+
+    private static string Envelope(List<Shot> shots, string clock)
+    {
+        var envelope = new StringBuilder("0");
+        foreach (var shot in shots)
+        {
+            var s = Number(shot.Start);
+            var e = Number(shot.End);
+            var r = Number(shot.Ramp);
+            envelope.Append($"+(st(0,clip(({clock}-{s})/{r},0,1)*clip(({e}-{clock})/{r},0,1));ld(0)*ld(0)*(3-2*ld(0)))");
+        }
+
+        return envelope.ToString();
+    }
+
+    private static string Centre(List<Shot> shots, string clock, bool horizontal)
+    {
+        var centre = new StringBuilder("0.5");
+        foreach (var shot in shots)
+        {
+            var inside = $"gte({clock},{Number(shot.Start)})*lt({clock},{Number(shot.End)})";
+            var offset = new StringBuilder(Number((horizontal ? shot.X : shot.Y) - 0.5));
+            foreach (var pan in shot.Pans)
+            {
+                var k = $"(st(1,clip(({clock}-{Number(pan.From)})/{Number(pan.Length)},0,1));ld(1)*ld(1)*(3-2*ld(1)))";
+                offset.Append($"+({Number(horizontal ? pan.Dx : pan.Dy)})*{k}");
+            }
+
+            centre.Append($"+{inside}*({offset})");
+        }
+
+        return centre.ToString();
+    }
+
+    /// <summary>
+    /// Yakınlaştırma filtresi: <c>fps</c> ile sabit kare hızı, sonra karedeki yeri alt piksel kesinlikte süren
+    /// <c>perspective</c>. <c>zoompan</c> kutuyu giriş pikseline yuvarladığı için kare kare 3 px'e kadar titrer
+    /// (<c>docs/olcumler/imlec-ornekleme.md</c>); ifade <see cref="MaxPerspectiveLength"/>'i aşarsa komut satırına
+    /// sığsın diye yine <c>zoompan</c>'a düşülür.
+    /// </summary>
     public static string Filter(IReadOnlyList<ZoomRegion> regions, double scale, int width, int height, double fps)
     {
         ArgumentNullException.ThrowIfNull(regions);
@@ -101,29 +214,34 @@ public static class AutoZoom
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         var rate = double.IsFinite(fps) && fps > 0 ? fps : 30;
         var amount = ClampScale(scale) - 1;
+        var shots = Shots(regions);
+        var smooth = Perspective(shots, amount, rate);
+        return smooth.Length <= MaxPerspectiveLength ? smooth : ZoomPan(shots, amount, width, height, rate);
+    }
 
-        var envelope = new StringBuilder("0");
-        var centreX = new StringBuilder("0.5");
-        var centreY = new StringBuilder("0.5");
-        foreach (var region in regions.OrderBy(r => r.Start))
-        {
-            if (!(region.End > region.Start)) continue;
-            var ramp = Math.Min(RampSeconds, region.Length / 2);
-            var s = Number(region.Start);
-            var e = Number(region.End);
-            var r = Number(ramp);
-            envelope.Append($"+(st(0,clip((it-{s})/{r},0,1)*clip(({e}-it)/{r},0,1));ld(0)*ld(0)*(3-2*ld(0)))");
-            var inside = $"gte(it,{s})*lt(it,{e})";
-            var dx = Number(Math.Clamp(region.CenterX, 0, 1) - 0.5);
-            var dy = Number(Math.Clamp(region.CenterY, 0, 1) - 0.5);
-            centreX.Append($"+{inside}*({dx})");
-            centreY.Append($"+{inside}*({dy})");
-        }
+    public static string ZoomPanFilter(IReadOnlyList<ZoomRegion> regions, double scale, int width, int height, double fps)
+    {
+        ArgumentNullException.ThrowIfNull(regions);
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        return ZoomPan(Shots(regions), ClampScale(scale) - 1, width, height, double.IsFinite(fps) && fps > 0 ? fps : 30);
+    }
 
-        return $"zoompan=z='1+{Number(amount)}*({envelope})'"
-               + $":x='clip(({centreX})*iw-iw/zoom/2,0,iw-iw/zoom)'"
-               + $":y='clip(({centreY})*ih-ih/zoom/2,0,ih-ih/zoom)'"
-               + $":d=1:s={width.ToString(CultureInfo.InvariantCulture)}x{height.ToString(CultureInfo.InvariantCulture)}:fps={Number(rate)}";
+    private static string ZoomPan(List<Shot> shots, double amount, int width, int height, double rate)
+        => $"zoompan=z='1+{Number(amount)}*({Envelope(shots, "it")})'"
+           + $":x='clip(({Centre(shots, "it", true)})*iw-iw/zoom/2,0,iw-iw/zoom)'"
+           + $":y='clip(({Centre(shots, "it", false)})*ih-ih/zoom/2,0,ih-ih/zoom)'"
+           + $":d=1:s={width.ToString(CultureInfo.InvariantCulture)}x{height.ToString(CultureInfo.InvariantCulture)}:fps={Number(rate)}";
+
+    private static string Perspective(List<Shot> shots, double amount, double rate)
+    {
+        var head = $"st(4,(in-1)/{Number(rate)});st(2,1/(1+{Number(amount)}*({Envelope(shots, "ld(4)")})));";
+        var left = $"{head}W*clip(({Centre(shots, "ld(4)", true)})-ld(2)/2,0,1-ld(2))+(ld(2)-1)/2";
+        var top = $"{head}H*clip(({Centre(shots, "ld(4)", false)})-ld(2)/2,0,1-ld(2))+(ld(2)-1)/2";
+        var right = left + "+W*ld(2)";
+        var bottom = top + "+H*ld(2)";
+        return $"fps={Number(rate)},perspective=x0='{left}':y0='{top}':x1='{right}':y1='{top}':x2='{left}':y2='{bottom}':x3='{right}':y3='{bottom}'"
+               + ":interpolation=cubic:eval=frame";
     }
 
     public static string Target(string source, Func<string, bool> exists)

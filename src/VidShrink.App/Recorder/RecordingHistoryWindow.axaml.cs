@@ -192,6 +192,11 @@ internal sealed partial class RecordingHistoryWindow : Window
             return;
         }
 
+        var sidecar = PointerTrack.SidecarOf(path);
+        try { if (File.Exists(sidecar)) _sources.Trash(sidecar); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception
+                                       or OperationCanceledException or PlatformNotSupportedException) { }
+
         ShowStatus(Say("recorder.history.trashed", name), error: false);
         var next = ShownPaths.Where(shown => shown != path).Skip(Math.Max(0, index)).FirstOrDefault()
                    ?? ShownPaths.LastOrDefault(shown => shown != path);

@@ -19,7 +19,7 @@ namespace VidShrink.Tests;
 /// <summary>
 /// Later 114 (kayıttan sonra otomatik yakınlaştırma), ilk yarı: kayıt sürerken imleç, tıklama ve tuş
 /// <see cref="PointerTrackRecorder"/> ile video saatine göre yan dosyaya (<c>.pointer.json</c>) yazılır,
-/// <see cref="AutoZoom.Suggest"/> bölge önerir, <see cref="AutoZoom.Filter"/> zoompan ifadesini kurar.
+/// <see cref="AutoZoom.Suggest"/> bölge önerir, <see cref="AutoZoom.Filter"/> perspective ifadesini kurar (uzunsa zoompan).
 /// Canlı kol 320x240 lavfi klibinde 20 px kutunun 2x bölgede 40 px'e çıktığını ve yerini ham gri kareden ölçer;
 /// bölge dışındaki kare olumsuz kontrol. Kayıt kolu gerçek gdigrab kaydında yan dosyayı açar, kutu kapalıyken yan dosya yok.
 /// Kanıt <c>.calisma/worktree-agent-later-114-115/</c>, test siler.
@@ -161,13 +161,24 @@ public sealed class OtomatikYakinlastirmaTests
         var argumanlar = AutoZoom.Build("k.mp4", "k-zoom.mp4", filtre, hasAudio: true, threads: 2).ToList();
         var sessiz = AutoZoom.Build("k.mkv", "k-zoom.mkv", filtre, hasAudio: false).ToList();
 
-        Assert.StartsWith("zoompan=z='1+1*(0+(st(0,clip((it-1)/0.4,0,1)*clip((3-it)/0.4,0,1))", filtre);
-        Assert.Contains("+gte(it,1)*lt(it,3)*(0.25)", filtre);
-        Assert.Contains("+gte(it,1)*lt(it,3)*(-0.25)", filtre);
-        Assert.EndsWith(":d=1:s=320x240:fps=10", filtre);
-        Assert.StartsWith("zoompan=z='1+3*(", dar);
+        var eski = AutoZoom.ZoomPanFilter(bolgeler, 2, 320, 240, 10);
+        var cok = Enumerable.Range(0, AutoZoom.MaxRegions).Select(i => new ZoomRegion(i * 3.0, i * 3.0 + 1.5, 0.1 + 0.8 * (i % 2), 0.5)).ToList();
+        var uzun = AutoZoom.Filter(cok, 2, 320, 240, 10);
+
+        Assert.StartsWith("fps=10,perspective=x0='st(4,(in-1)/10);st(2,1/(1+1*(0+(st(0,clip((ld(4)-1)/0.4,0,1)*clip((3-ld(4))/0.4,0,1))", filtre);
+        Assert.Contains("+gte(ld(4),1)*lt(ld(4),3)*(0.25)", filtre);
+        Assert.Contains("+gte(ld(4),1)*lt(ld(4),3)*(-0.25)", filtre);
+        Assert.Contains("-ld(2)/2,0,1-ld(2))+(ld(2)-1)/2+W*ld(2)':y1=", filtre);
+        Assert.EndsWith(":interpolation=cubic:eval=frame", filtre);
+        Assert.InRange(filtre.Length, 1, AutoZoom.MaxPerspectiveLength);
+        Assert.StartsWith("fps=30,perspective=", dar);
+        Assert.Contains("st(2,1/(1+3*(", dar);
         Assert.Contains("/0.2,0,1)", dar);
-        Assert.EndsWith(":fps=30", dar);
+        Assert.StartsWith("zoompan=z='1+1*(0+(st(0,clip((it-1)/0.4,0,1)*clip((3-it)/0.4,0,1))", eski);
+        Assert.Contains("+gte(it,1)*lt(it,3)*(0.25)", eski);
+        Assert.EndsWith(":d=1:s=320x240:fps=10", eski);
+        Assert.StartsWith("zoompan=", uzun);
+        Assert.Equal(AutoZoom.ZoomPanFilter(cok, 2, 320, 240, 10), uzun);
         Assert.Equal(1.1, AutoZoom.ClampScale(0.5));
         Assert.Equal(AutoZoom.DefaultScale, AutoZoom.ClampScale(double.NaN));
 
@@ -182,6 +193,55 @@ public sealed class OtomatikYakinlastirmaTests
         var dolu = new HashSet<string> { Path.Combine("d", "k-zoom.mp4") };
         Assert.Equal(Path.Combine("d", "k-zoom_2.mp4"), AutoZoom.Target(Path.Combine("d", "k.mp4"), dolu.Contains));
         Assert.Equal(Path.Combine("d", "k-zoom.mkv"), AutoZoom.Target(Path.Combine("d", "k.webm"), _ => false));
+    }
+
+    /// <summary>
+    /// Arası <see cref="AutoZoom.PanGapSeconds"/>'tan kısa iki bölge tek çekimdir: yakınlık sınırda bırakılmaz, merkez
+    /// sınırın ortasında <see cref="AutoZoom.PanSeconds"/> içinde sıçramadan kayar. Arası uzun iki bölgede yakınlık
+    /// aradaki boşlukta bırakılır; olumsuz kontrol.
+    /// </summary>
+    [Fact]
+    public void YanYanaBolgelerdeYakinlikBirakilmadanYumusakKaydirilir()
+    {
+        var yanYana = new[] { new ZoomRegion(3.5, 6, 0.75, 0.6), new ZoomRegion(1, 3, 0.25, 0.4) };
+        var uzak = new[] { new ZoomRegion(1, 3, 0.25, 0.4), new ZoomRegion(5, 7, 0.75, 0.6) };
+
+        for (var t = 1.4; t < 5.6; t += 0.01)
+            Assert.Equal(2, AutoZoom.At(yanYana, 2, t).Zoom, 6);
+        Assert.Equal((2, 0.25, 0.4), AutoZoom.At(yanYana, 2, 2.9));
+        Assert.Equal(0.5, AutoZoom.At(yanYana, 2, 3.25).CenterX, 6);
+        Assert.Equal(0.5, AutoZoom.At(yanYana, 2, 3.25).CenterY, 6);
+        Assert.Equal(0.75, AutoZoom.At(yanYana, 2, 3.6).CenterX, 9);
+        Assert.Equal(0.6, AutoZoom.At(yanYana, 2, 3.6).CenterY, 9);
+
+        var onceki = AutoZoom.At(yanYana, 2, 2.9).CenterX;
+        var enBuyukAdim = 0.0;
+        for (var t = 2.91; t <= 3.6; t += 0.01)
+        {
+            var simdi = AutoZoom.At(yanYana, 2, t).CenterX;
+            Assert.True(simdi >= onceki - 1e-12, $"t={t} geri kaydı");
+            enBuyukAdim = Math.Max(enBuyukAdim, simdi - onceki);
+            onceki = simdi;
+        }
+
+        Assert.InRange(enBuyukAdim, 0.001, 1.5 * 0.5 / AutoZoom.PanSeconds * 0.01 + 1e-9);
+
+        Assert.Equal((1, 0.5, 0.5), AutoZoom.At(uzak, 2, 4));
+        Assert.Equal((1, 0.5, 0.5), AutoZoom.At(yanYana, 2, 0.5));
+        Assert.Equal(0.25, AutoZoom.At(uzak, 2, 2.9).CenterX);
+        Assert.Equal(0.75, AutoZoom.At(uzak, 2, 5.1).CenterX);
+
+        var kisa = new[] { new ZoomRegion(0, 1, 0.2, 0.5), new ZoomRegion(1, 1.2, 0.8, 0.5) };
+        Assert.Equal(0.2, AutoZoom.At(kisa, 2, 0.9).CenterX);
+        Assert.Equal(0.8, AutoZoom.At(kisa, 2, 1.1).CenterX, 9);
+
+        var tekCekim = AutoZoom.Filter(yanYana, 2, 320, 240, 30);
+        var ikiCekim = AutoZoom.Filter(uzak, 2, 320, 240, 30);
+        static int Zarf(string filtre) => filtre.Split("x0='")[1].Split("':y0=")[0].Split("st(0,").Length - 1;
+        Assert.Equal(1, Zarf(tekCekim));
+        Assert.Equal(2, Zarf(ikiCekim));
+        Assert.Contains("st(1,clip((ld(4)-2.95)/0.6,0,1))", tekCekim);
+        Assert.DoesNotContain("st(1,", ikiCekim);
     }
 
     private static (int X0, int Y0, int X1, int Y1) Kutu(byte[] gri, int en, int boy)

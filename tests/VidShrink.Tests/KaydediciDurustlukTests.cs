@@ -103,6 +103,21 @@ public sealed class KaydediciDurustlukTests : IDisposable
     }
 
     [Fact]
+    public void AtilanKaydinImlecIziDeSilinir()
+    {
+        var yol = Dosya("izli.mkv");
+        var iz = Dosya("izli" + PointerTrack.Suffix);
+        var baska = Dosya("baska" + PointerTrack.Suffix);
+
+        var kalan = RecorderView.DeleteRecording(Sonuc(yol));
+
+        Assert.Empty(kalan);
+        Assert.False(File.Exists(yol));
+        Assert.False(File.Exists(iz));
+        Assert.True(File.Exists(baska));
+    }
+
+    [Fact]
     public void BasarisizKayitBasligiBasarisizDer()
     {
         var ekran = Ciz(v => v.ShowResult(Sonuc(Path.Combine(_klasor, "a.mkv"), ok: false, cikis: 1)));

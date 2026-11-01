@@ -162,6 +162,39 @@ public sealed class KayitGecmisiTests : IDisposable
         Assert.True(File.Exists(a));
     }
 
+    /// <summary>Çöpe taşınan kaydın imleç izi de çöpe gider; başka kaydın izi yerinde kalır. Kayıt taşınamazsa izi de kalır.</summary>
+    [Fact]
+    public void CopeTasinanKaydinImlecIziDeGider()
+    {
+        Dosya("kayit_a.mp4", 2);
+        var b = Dosya("kayit_b.mp4", 1);
+        var izA = Dosya("kayit_a" + PointerTrack.Suffix, 2);
+        var izB = Dosya("kayit_b" + PointerTrack.Suffix, 1);
+        var tasinan = AppHost.Run(() =>
+        {
+            var sahte = new Sahte();
+            var liste = new List<string>();
+            sahte.Cop = yol => { liste.Add(yol); File.Delete(yol); };
+            var pencere = Pencere(sahte, (_, _) => Task.FromResult(1d));
+            try
+            {
+                pencere.Select(b);
+                pencere.TrashSelected();
+                sahte.Cop = _ => throw new IOException("kilitli");
+                pencere.TrashSelected();
+                return liste.ToArray();
+            }
+            finally
+            {
+                pencere.Close();
+            }
+        });
+
+        Assert.Equal(new[] { b, izB }, tasinan);
+        Assert.False(File.Exists(izB));
+        Assert.True(File.Exists(izA));
+    }
+
     /// <summary>Seçili kayıt oynatıcıya verilir ve pencere kapanır; klasöründen kalkmış kayıt verilmez, durum satırı söyler.</summary>
     [Fact]
     public void AcmaVarOlanKaydiOynaticiyaVerir()

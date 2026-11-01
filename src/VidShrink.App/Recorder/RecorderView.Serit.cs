@@ -232,7 +232,9 @@ internal partial class RecorderView
     internal static IReadOnlyList<string> DeleteRecording(RecordResult result)
     {
         var kalan = new List<string>();
-        foreach (var file in (result.Files ?? Array.Empty<string>()).Append(result.OutputPath).Distinct(StringComparer.OrdinalIgnoreCase))
+        var files = (result.Files ?? Array.Empty<string>()).Append(result.OutputPath);
+        if (!string.IsNullOrEmpty(result.OutputPath)) files = files.Append(PointerTrack.SidecarOf(result.OutputPath));
+        foreach (var file in files.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             try { if (File.Exists(file)) File.Delete(file); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

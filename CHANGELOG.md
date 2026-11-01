@@ -9,6 +9,15 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+### Changed
+
+- Auto zoom keeps the zoom between neighbouring regions and pans smoothly from one to the next instead of zooming out and back in.
+- Auto zoom renders with a sub-pixel `perspective` filter instead of `zoompan`, removing the 2-4 px jitter while zooming and panning.
+
+### Fixed
+
+- Deleting a recording from the history window or discarding it also removes its `.pointer.json` cursor track.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

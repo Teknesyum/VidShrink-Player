@@ -46,6 +46,7 @@ try
         "transition-preview" => await GecisOnizleme.RunAsync(args),
         "proxy-seek" => await VekilSarma.RunAsync(args),
         "pointer-sampling" => await ImlecOrnekleme.RunAsync(args),
+        "zoom-jitter" => await YakinlastirmaTitremesi.RunAsync(args),
         _ => Unknown(args[0])
     };
 }
