@@ -125,7 +125,7 @@ public sealed class OynaticiKurulumTests
         }
 
         Assert.Contains("Join-Path $stageRoot 'tools\\libmpv'", kurulum, StringComparison.Ordinal);
-        Assert.Contains("Install-LibMpv $workRoot $libMpvRoot $installedLibMpv", kurulum, StringComparison.Ordinal);
+        Assert.Contains("Install-LibMpv $workRoot $libMpvRoot $libMpvExisting", kurulum, StringComparison.Ordinal);
         Assert.Contains("$actual -ne $libMpvArchiveSha256", kurulum, StringComparison.Ordinal);
         Assert.Contains("$dllActual -ne $libMpvDllSha256", kurulum, StringComparison.Ordinal);
     }
@@ -167,7 +167,7 @@ public sealed class OynaticiKurulumTests
             Assert.True(ortam > vulkan, $"{ad} vulkan-1.dll libmpv ortam degiskeninden sonra iniyor");
         }
 
-        Assert.Contains("Install-VulkanLoader $workRoot $libMpvRoot (Join-Path $resolvedInstallRoot 'tools\\libmpv')", kurulum, StringComparison.Ordinal);
+        Assert.Contains("Install-VulkanLoader $workRoot $libMpvRoot $vulkanExisting", kurulum, StringComparison.Ordinal);
         Assert.Contains("$dllActual -ne $vulkanLoaderDllSha256", kurulum, StringComparison.Ordinal);
         Assert.Contains("$script:vulkanLoaderDllSha256 = $vulkanLoaderArm64DllSha256", kurulum, StringComparison.Ordinal);
     }
