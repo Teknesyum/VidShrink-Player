@@ -1163,6 +1163,40 @@ public sealed class OynaticiFareTests
     }
 
     [Fact]
+    public void BasiliTutmaRozetteIkiKatiSolmadanGosterirBirakistaEskiHiziSoyler()
+    {
+        AppHost.Run(() =>
+        {
+            var view = GirdiSurucu.Kur(out var window);
+            var saat = 80.0;
+            view.FareSaati = () => saat;
+            var hizOnce = view.SpeedFactor;
+            var tutmaMetni = Strings.Get("main.player.osd.speed", VidShrink.Core.Bicim.Kat(Keymap.HoldSpeed, Strings.Culture));
+            var eskiMetin = Strings.Get("main.player.osd.speed", VidShrink.Core.Bicim.Kat(hizOnce, Strings.Culture));
+
+            view.FarePress(20, 20);
+            saat += view.Sol.TutmaSn - 0.01;
+            view.FareZaman();
+            var erken = view.OsdText;
+            saat += 0.01;
+            Assert.True(view.FareZaman());
+            var tutarken = view.OsdText;
+            var tutarkenSoluyor = view.OsdSoluyor;
+            saat += 5;
+            Assert.Equal(SolTikSonucu.TutmaBitti, view.FareRelease());
+
+            Assert.NotEqual(tutmaMetni, erken);
+            Assert.Equal(tutmaMetni, tutarken);
+            Assert.False(tutarkenSoluyor);
+            Assert.Equal(eskiMetin, view.OsdText);
+            Assert.True(view.OsdSoluyor);
+
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public void SuruklemeEsigiTiklamayiYutarEsikAltiBasisDuraklatir()
     {
         var rapor = AppHost.Run(() =>

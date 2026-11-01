@@ -320,6 +320,10 @@ public sealed class PlaybackPanelTests : IClassFixture<PlaybackPanelTests.SesliK
             return true;
         }
 
+        internal readonly List<double> Speeds = new();
+
+        public void SetSpeed(double speed) => Speeds.Add(speed);
+
         public void Return(PlaybackFrame frame) { }
         public void Play() { PlayCount++; _playing = true; }
         public void Pause() { PauseCount++; _playing = false; }
@@ -390,5 +394,64 @@ public sealed class PlaybackPanelTests : IClassFixture<PlaybackPanelTests.SesliK
         Assert.Equal(1, plays);
         Assert.Equal(1, pauses);
         Assert.Equal(0, made);
+    }
+
+    /// <summary>
+    /// Panel yüzeyinde basılı tutma oynatıcıdaki gibi eşikte 2x'e çıkar, hız kaynağa iner,
+    /// bırakış 1x'e döndürür ve tık sayılmaz; eşikten önce oynayan basış hızlanmaz.
+    /// </summary>
+    [Fact]
+    public void Panel_basili_tutma_kaynagi_iki_kata_cikarir_birakis_dondurur()
+    {
+        var sonuc = AppHost.Run(() =>
+        {
+            var panel = new ComparisonPanel();
+            var window = new Window { Content = panel };
+            window.Measure(WindowSize);
+            window.Arrange(new Rect(WindowSize));
+            using var host = new PanelHost(panel, () => new SayanKaynak(640, 180, 30));
+            var live = new SayanKaynak(640, 180, 30);
+            typeof(PanelHost)
+                .GetField("_source", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .SetValue(host, live);
+            panel.Controls.IsPlaying = true;
+
+            var saat = 10.0;
+            panel.FareSaati = () => saat;
+            var esik = panel.Sol.TutmaSn;
+            panel.StagePress(new Point(20, 20));
+            saat += esik - 0.01;
+            var erken = panel.FareZaman();
+            saat += 0.01;
+            var gecti = panel.FareZaman();
+            var tutarken = (host.Hiz, panel.HizliTutuluyor, Hizlar: string.Join(",", live.Speeds));
+            saat += 2;
+            var birakis = panel.StageRelease();
+            var sonra = (host.Hiz, panel.HizliTutuluyor, Hizlar: string.Join(",", live.Speeds), panel.Controls.IsPlaying, live.PlayCount, live.PauseCount);
+
+            saat += 5;
+            panel.StagePress(new Point(20, 20));
+            panel.StageMove(new Point(60, 20));
+            saat += esik + 1;
+            var suruklemede = panel.FareZaman();
+            var suruklemeBirakis = panel.StageRelease();
+            return (erken, gecti, tutarken, birakis, sonra, suruklemede, suruklemeBirakis, Son: string.Join(",", live.Speeds));
+        });
+
+        Assert.False(sonuc.erken);
+        Assert.True(sonuc.gecti);
+        Assert.Equal(Keymap.HoldSpeed, sonuc.tutarken.Hiz);
+        Assert.True(sonuc.tutarken.HizliTutuluyor);
+        Assert.Equal("2", sonuc.tutarken.Hizlar);
+        Assert.Equal(SolTikSonucu.TutmaBitti, sonuc.birakis);
+        Assert.Equal(1, sonuc.sonra.Hiz);
+        Assert.False(sonuc.sonra.HizliTutuluyor);
+        Assert.Equal("2,1", sonuc.sonra.Hizlar);
+        Assert.True(sonuc.sonra.IsPlaying, "tutma bırakışı tık sayıldı");
+        Assert.Equal(0, sonuc.sonra.PlayCount);
+        Assert.Equal(0, sonuc.sonra.PauseCount);
+        Assert.False(sonuc.suruklemede);
+        Assert.Equal(SolTikSonucu.Surukleme, sonuc.suruklemeBirakis);
+        Assert.Equal("2,1", sonuc.Son);
     }
 }

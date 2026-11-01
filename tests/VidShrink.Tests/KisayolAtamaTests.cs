@@ -91,6 +91,39 @@ public sealed class KisayolAtamaTests
         => Keymap.Rows.FirstOrDefault(r => ShortcutBindings.Same(r.Input, girdi))?.Action;
 
     [Fact]
+    public void SolTikSatirininAltindaCiftTikVeBasiliTutmaSatirlariDurur()
+    {
+        var sonuc = AppHost.Run(() =>
+        {
+            var (pencere, panel) = OynaticiPaneli();
+            try
+            {
+                var satirlar = panel.Shown.ToList();
+                var sol = satirlar.FindIndex(s => s.Gesture == ShortcutKeyButton.Display(PlayerInput.OnPress(PlayerButton.Left)));
+                var hucreler = panel.Table.Buttons.Count();
+                panel.Table.Filter = "2×";
+                var suzulen = panel.Shown.ToList();
+                var sayim = panel.Table.Matches("Double-click");
+                panel.Table.Filter = "";
+                return (satirlar, sol, hucreler, suzulen, sayim);
+            }
+            finally
+            {
+                pencere.Close();
+            }
+        });
+
+        Assert.True(sonuc.sol >= 0, "sol tık satırı yok");
+        Assert.Equal(("<Double-click>", Bicim.Satir.Bagla("Full screen")), sonuc.satirlar[sonuc.sol + 1]);
+        Assert.Equal(("<Hold left click>", Bicim.Satir.Bagla("Play at 2× until released")), sonuc.satirlar[sonuc.sol + 2]);
+        Assert.Equal(1, sonuc.satirlar.Count(s => s.Gesture == "<Double-click>"));
+        Assert.Equal(sonuc.satirlar.Count - 2 - sonuc.satirlar.Count(s => s.Gesture.Contains("Wheel", StringComparison.Ordinal)), sonuc.hucreler);
+        Assert.Contains(("<Hold left click>", Bicim.Satir.Bagla("Play at 2× until released")), sonuc.suzulen);
+        Assert.DoesNotContain(sonuc.suzulen, s => s.Gesture == "<Double-click>");
+        Assert.Equal(1, sonuc.sayim);
+    }
+
+    [Fact]
     public void TusYakalanirDosyayaYazilirVeGeriOkunur()
     {
         var sonuc = AppHost.Run(() => Dosyayla(dosya =>

@@ -9,6 +9,12 @@ made after it, is in [`docs/CHANGELOG-VidShrink.md`](docs/CHANGELOG-VidShrink.md
 
 ## [Unreleased]
 
+### Added
+
+- The player shortcuts list shows double-click (full screen) and hold left click (2× until released) under the left-click row.
+- Holding the left button shows the 2× speed badge for as long as the button is held; releasing shows the restored speed.
+- The comparison panel takes the player's left-click behaviour: double-click toggles the panel's full screen and holding plays both sides and the audio at 2× until released.
+
 ## [0.0.3] - 2026-10-22
 
 ### Added

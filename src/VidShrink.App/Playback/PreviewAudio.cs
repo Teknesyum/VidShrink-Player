@@ -119,6 +119,14 @@ internal sealed class PreviewAudio : IDisposable
         try { engine.Play(); } catch (ObjectDisposedException) { }
     }
 
+    internal void SetSpeed(double speed)
+    {
+        IPlaybackEngine? engine;
+        lock (_gate) engine = _engine;
+        if (engine is null || !engine.HasAudio) return;
+        try { engine.SetSpeed(speed); } catch (ObjectDisposedException) { }
+    }
+
     internal void Pause()
     {
         IPlaybackEngine? engine;

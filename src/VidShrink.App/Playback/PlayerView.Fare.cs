@@ -86,6 +86,7 @@ internal partial class PlayerView
         _hizliTutma = true;
         _engine?.SetSpeed(Keymap.HoldSpeed);
         _trace.Add("hold -> " + Saat.Tani.Konum(Keymap.HoldSpeed));
+        TutmaGostergesi();
         return true;
     }
 
@@ -120,6 +121,7 @@ internal partial class PlayerView
         _hizliTutma = false;
         _engine?.SetSpeed(_speed);
         _trace.Add("hold -> " + Saat.Tani.Konum(_speed));
+        ShowSpeedOsd();
     }
 
     private TimeSpan TutmaEsigi()

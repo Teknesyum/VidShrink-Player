@@ -29,6 +29,7 @@ public sealed class EngineComparisonFrameSource : IComparisonFrameSource
     private FrameRing? _ring;
     private IPlaybackEngine? _left;
     private IPlaybackEngine? _right;
+    private double _speed = 1;
     private Thread? _pump;
     private CancellationTokenSource? _life;
 
@@ -141,6 +142,9 @@ public sealed class EngineComparisonFrameSource : IComparisonFrameSource
         }
 
         SetState(ComparisonSourceState.Aciliyor);
+        double speed;
+        lock (_gate) speed = _speed;
+        if (speed != 1) Hizla(left, right, speed);
 
         try
         {
@@ -422,6 +426,32 @@ public sealed class EngineComparisonFrameSource : IComparisonFrameSource
         _wantPlay = true;
         if (_ready && left is not null && right is not null) PlayBoth(left, right);
         SetState(ComparisonSourceState.Oynuyor);
+    }
+
+    public void SetSpeed(double speed)
+    {
+        if (_disposed || !(speed > 0)) return;
+        IPlaybackEngine? left;
+        IPlaybackEngine? right;
+        lock (_gate)
+        {
+            _speed = speed;
+            left = _left;
+            right = _right;
+        }
+        Hizla(left, right, speed);
+    }
+
+    private static void Hizla(IPlaybackEngine? left, IPlaybackEngine? right, double speed)
+    {
+        try
+        {
+            left?.SetSpeed(speed);
+            right?.SetSpeed(speed);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     public void Pause()

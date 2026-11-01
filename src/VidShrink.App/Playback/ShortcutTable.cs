@@ -20,7 +20,8 @@ internal interface IShortcutCard
 
 /// <summary>
 /// Oynatıcı ve düzenleyici kısayol panellerinin ortak tablosu: tuş kutusu, açıklama, çakışma
-/// bildirimi ve varsayılana dönüş. Tekerlek satırları değiştirilemez, düz metin kalır.
+/// bildirimi ve varsayılana dönüş. Tekerlek satırları ve oynatıcıda sol tıkın altındaki
+/// çift tık ile basılı tutma satırları değiştirilemez, düz metin kalır.
 /// </summary>
 internal sealed class ShortcutTable
 {
@@ -65,7 +66,11 @@ internal sealed class ShortcutTable
     }
 
     internal int Matches(string query)
-        => ShortcutBindings.Slots(_map).Count(slot => Fits(slot, query.Trim()));
+        => ShortcutBindings.Slots(_map).Count(slot => Fits(slot, query.Trim()))
+           + (_map == ShortcutMap.Player ? Keymap.SabitSatirlar().Count(r => SabitUyar(r, query.Trim())) : 0);
+
+    private static bool SabitUyar((string Gesture, string Label) satir, string query)
+        => query.Length == 0 || SettingsSearch.Matches(satir.Label, query) || SettingsSearch.Matches(satir.Gesture, query);
 
     private static bool Fits(ShortcutSlot slot, string query)
         => query.Length == 0
@@ -103,41 +108,36 @@ internal sealed class ShortcutTable
         var index = 0;
         foreach (var slot in ShortcutBindings.Slots(_map))
         {
-            if (!Fits(slot, _filter)) continue;
-            _rows.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-
-            Control gesture;
-            if (slot.Rebindable)
-            {
-                var button = new ShortcutKeyButton(slot, _find("ShortcutKeyButton"), _find("MonoValue"));
-                button.Captured += OnCaptured;
-                gesture = button;
-            }
-            else
-            {
-                gesture = new KeyText
-                {
-                    Text = ShortcutKeyButton.Display(slot.Current),
-                    Theme = _find("MonoValue")
-                };
-            }
-
-            Grid.SetRow(gesture, index);
-            Grid.SetColumn(gesture, 0);
-
-            var label = new SarilanMetin
-            {
-                Text = VidShrink.Core.Bicim.Satir.Bagla(slot.Label),
-                Theme = _find("Body"),
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap
-            };
-            Grid.SetRow(label, index);
-            Grid.SetColumn(label, 1);
-
-            _rows.Children.Add(gesture);
-            _rows.Children.Add(label);
-            index++;
+            if (Fits(slot, _filter)) Satir(Hucre(slot), slot.Label, index++);
+            if (_map != ShortcutMap.Player || slot.Default != PlayerInput.OnPress(PlayerButton.Left)) continue;
+            foreach (var sabit in Keymap.SabitSatirlar().Where(r => SabitUyar(r, _filter)))
+                Satir(new KeyText { Text = Keymap.Boxed(sabit.Gesture), Theme = _find("MonoValue") }, sabit.Label, index++);
         }
+    }
+
+    private Control Hucre(ShortcutSlot slot)
+    {
+        if (!slot.Rebindable) return new KeyText { Text = ShortcutKeyButton.Display(slot.Current), Theme = _find("MonoValue") };
+        var button = new ShortcutKeyButton(slot, _find("ShortcutKeyButton"), _find("MonoValue"));
+        button.Captured += OnCaptured;
+        return button;
+    }
+
+    private void Satir(Control gesture, string text, int index)
+    {
+        _rows.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        Grid.SetRow(gesture, index);
+        Grid.SetColumn(gesture, 0);
+        var label = new SarilanMetin
+        {
+            Text = VidShrink.Core.Bicim.Satir.Bagla(text),
+            Theme = _find("Body"),
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+        };
+        Grid.SetRow(label, index);
+        Grid.SetColumn(label, 1);
+        _rows.Children.Add(gesture);
+        _rows.Children.Add(label);
     }
 
     internal static string CellText(Control cell) => cell switch

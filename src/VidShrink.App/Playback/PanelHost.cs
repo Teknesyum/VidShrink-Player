@@ -69,6 +69,7 @@ internal sealed class PanelHost : IDisposable
     private readonly PreviewAudio _audio = new();
 
     private IComparisonFrameSource? _source;
+    private double _hiz = 1;
     private string? _left;
     private string? _right;
     private double _aspect = 16.0 / 9.0;
@@ -124,6 +125,7 @@ internal sealed class PanelHost : IDisposable
 
         _panel.Frames.SizeChanged += (_, _) => OnResized();
         _panel.Controls.PlayPauseRequested += (_, _) => ApplyPlayState();
+        _panel.SpeedRequested += (_, speed) => ApplySpeed(speed);
         _panel.Controls.RestartRequested += (_, _) => Seek(TimeSpan.Zero);
         _panel.Controls.SeekRequested += (_, position) => Seek(position);
 
@@ -441,6 +443,7 @@ internal sealed class PanelHost : IDisposable
 
         var source = _factory();
         _source = source;
+        if (_hiz != 1) source.SetSpeed(_hiz);
         source.StatusChanged += OnStatusChanged;
 
         // Parça modunda iki girdi de aynı pencereye kesilmiş dosyalardır: ikisi de kendi
@@ -921,6 +924,7 @@ internal sealed class PanelHost : IDisposable
         _clipStart = clip.StartSeconds;
         _clipSignature = _info is { } media && _plan is { } current ? ClipSignature(media, current, clip.StartSeconds) : null;
         _source = next;
+        if (_hiz != 1) next.SetSpeed(_hiz);
         _orderedTicks = OrderedTicksAfterHandover;
         _handovers++;
 
@@ -1032,6 +1036,7 @@ internal sealed class PanelHost : IDisposable
             if (!_audio.HasAudio) return;
 
             _audio.SeekTo(atSeconds);
+            if (_hiz != 1) _audio.SetSpeed(_hiz);
             Dispatcher.UIThread.Post(() =>
             {
                 if (_disposed || !_open || generation != _generation) return;
@@ -1042,6 +1047,16 @@ internal sealed class PanelHost : IDisposable
         catch
         {
         }
+    }
+
+    /// <summary>Panelde basılı tutmanın hızı: iki taraf ve ses birlikte hızlanır, bırakışta birlikte döner.</summary>
+    internal double Hiz => _hiz;
+
+    private void ApplySpeed(double speed)
+    {
+        _hiz = speed;
+        _source?.SetSpeed(speed);
+        _audio.SetSpeed(speed);
     }
 
     private void ApplyPlayState()

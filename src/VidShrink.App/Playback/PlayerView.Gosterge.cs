@@ -35,6 +35,18 @@ internal partial class PlayerView
         => ShowOsd(Strings.Get("main.player.osd.speed", Bicim.Kat(_speed, Strings.Culture)), true);
 
     /// <summary>
+    /// Basılı tutma hızı rozette <see cref="Keymap.HoldSpeed"/> olarak durur ve bırakılana dek
+    /// solmaz; bırakışta rozet eski hızı söyleyip olağan sürede solar.
+    /// </summary>
+    private void TutmaGostergesi()
+    {
+        ShowOsd(Strings.Get("main.player.osd.speed", Bicim.Kat(Keymap.HoldSpeed, Strings.Culture)), true, true);
+        _osdTimer?.Stop();
+    }
+
+    internal bool OsdSoluyor => _osdTimer?.IsEnabled == true;
+
+    /// <summary>
     /// Hız kipinin simgesi harf değil göstergedir: iki kipin o anki hızı karşılaştırılır, yüksek olan
     /// ibresi sağa yatık ve ucu turuncu "hızlı" simgesini, düşük olan "yavaş" simgesini alır. Kullanıcı
     /// bir kipin hızını ötekinin üstüne çıkarırsa simgeler yer değiştirir. Etkin kipin hızı ayardan değil
@@ -48,9 +60,9 @@ internal partial class PlayerView
 
     internal static bool HizliMi(double etkin, double diger) => etkin == diger ? etkin > 1 : etkin > diger;
 
-    private void ApplySpeedGlyph(Control kutu, Avalonia.Controls.Shapes.Path govde, Avalonia.Controls.Shapes.Path uc)
+    private void ApplySpeedGlyph(Control kutu, Avalonia.Controls.Shapes.Path govde, Avalonia.Controls.Shapes.Path uc, bool? zorla = null)
     {
-        var hizli = SpeedFast;
+        var hizli = zorla ?? SpeedFast;
         govde.Data = Icon(hizli ? "IconSpeedFast" : "IconSpeedSlow");
         uc.IsVisible = hizli;
         AutomationProperties.SetName(kutu, Strings.Get(hizli ? "main.player.speed.fast" : "main.player.speed.slow"));
@@ -90,10 +102,10 @@ internal partial class PlayerView
     private bool OsdMotionReduced
         => TopLevel.GetTopLevel(this) is { } ust && ust.Classes.Contains("reduced-motion");
 
-    private void ShowOsd(string text, bool hiz = false)
+    private void ShowOsd(string text, bool hiz = false, bool? hizli = null)
     {
         OsdSpeedGlyph.IsVisible = hiz;
-        if (hiz) ApplySpeedGlyph(OsdSpeedGlyph, GlyphOsdSpeed, GlyphOsdSpeedTip);
+        if (hiz) ApplySpeedGlyph(OsdSpeedGlyph, GlyphOsdSpeed, GlyphOsdSpeedTip, hizli);
         _osdTransitions ??= OsdBadge.Transitions;
         _osdTimer ??= new DispatcherTimer();
         _osdTimer.Stop();

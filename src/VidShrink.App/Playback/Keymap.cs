@@ -235,6 +235,16 @@ internal static class Keymap
         return slots;
     }
 
+    /// <summary>
+    /// Sol tıkın değiştirilemeyen iki anlamı: çift tık tam ekran, basılı tutma bırakana dek
+    /// <see cref="HoldSpeed"/>. Kısayol tablosunda sol tık satırının hemen altına düz metin girer.
+    /// </summary>
+    internal static IReadOnlyList<(string Gesture, string Label)> SabitSatirlar() => new[]
+    {
+        (Strings.Get("main.player.input.doubleleft"), Strings.Get(Fullscreen.LabelKey)),
+        (Strings.Get("main.player.input.holdleft"), Strings.Get("main.player.hold.fast", Bicim.Kat(HoldSpeed, Strings.Culture)))
+    };
+
     private static void Refresh()
     {
         var version = ShortcutBindings.Version;

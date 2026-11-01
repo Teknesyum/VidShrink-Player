@@ -513,8 +513,8 @@ public sealed class ComparisonPanelTests
 
     /// <summary>
     /// Karşılaştırma paneli oynatıcıyla aynı girdiyi izler: tekerlek zamanı 10 sn kaydırır
-    /// (Alt ile yakınlaştırır), tek tık bırakışta oynat/duraklatı hemen çevirir, çift tık tam
-    /// ekrana geçmez; tam ekran orta tuş ve F ile.
+    /// (Alt ile yakınlaştırır), tek tık bırakışta oynat/duraklatı hemen çevirir, çift tık
+    /// oynatıcıdaki gibi tam ekrana geçip ilk tıkın duraklatmasını geri alır; orta tuş ve F de tam ekran.
     /// </summary>
     [Fact]
     public void Panel_girdisi_oynaticiyla_ayni()
@@ -544,19 +544,29 @@ public sealed class ComparisonPanelTests
             panel.Descend();
             Settle(host);
 
+            var clock = 100.0;
+            panel.FareSaati = () => clock;
             var playing = strip.IsPlaying;
             panel.StagePress(new Point(20, 20));
             var heldToggles = toggles;
+            clock += 0.05;
             var first = panel.StageRelease();
             var afterFirst = strip.IsPlaying;
+            clock += 0.1;
             panel.StagePress(new Point(20, 20));
-            panel.StageRelease();
+            clock += 0.05;
+            var second = panel.StageRelease();
+            Settle(host);
             var afterDouble = strip.IsPlaying;
+            var full = panel.Shelter == ShelterStage.Full;
+            panel.ToggleFullScreen();
+            Settle(host);
+            clock += 5;
             panel.StagePress(new Point(20, 20));
             panel.StageMove(new Point(60, 20));
             var dragged = panel.StageRelease();
             Settle(host);
-            var clickResult = (heldToggles, first, Flipped: afterFirst != playing, Back: afterDouble == playing, Toggles: toggles, dragged, Full: panel.Shelter == ShelterStage.Full);
+            var clickResult = (heldToggles, first, second, Flipped: afterFirst != playing, Back: afterDouble == playing, Toggles: toggles, dragged, Full: full);
 
             var stage = panel.FindControl<Control>("Stage")!;
             PanelBas(stage, PointerUpdateKind.MiddleButtonPressed, RawInputModifiers.MiddleMouseButton);
@@ -583,12 +593,13 @@ public sealed class ComparisonPanelTests
         Assert.True(zoom.Grew, "Alt+tekerlek paneli büyütmedi");
 
         Assert.Equal(0, clicks.heldToggles);
-        Assert.Equal(ReleaseOutcome.Click, clicks.first);
+        Assert.Equal(SolTikSonucu.Tik, clicks.first);
+        Assert.Equal(SolTikSonucu.CiftTik, clicks.second);
         Assert.True(clicks.Flipped, "tek tık bırakışta oynatmayı çevirmedi");
-        Assert.True(clicks.Back, "çift tık iki kez çevirmedi");
+        Assert.True(clicks.Back, "çift tık ilk tıkın duraklatmasını geri almadı");
         Assert.Equal(2, clicks.Toggles);
-        Assert.NotEqual(ReleaseOutcome.Click, clicks.dragged);
-        Assert.False(clicks.Full, "çift tık tam ekrana geçti");
+        Assert.Equal(SolTikSonucu.Surukleme, clicks.dragged);
+        Assert.True(clicks.Full, "çift tık paneli tam ekrana geçirmedi");
 
         Assert.Equal(ShelterStage.Full, full.middleOn);
         Assert.NotEqual(ShelterStage.Full, full.middleOff);

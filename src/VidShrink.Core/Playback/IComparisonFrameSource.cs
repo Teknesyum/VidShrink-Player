@@ -62,6 +62,9 @@ public interface IComparisonFrameSource : IDisposable
     /// <summary>Okumayi keser. Motor kapanmaz, yasar.</summary>
     void Pause();
 
+    /// <summary>Iki tarafin oynatma hizini birlikte degistirir. Hiz bilmeyen kaynak yok sayar.</summary>
+    void SetSpeed(double speed) { }
+
     /// <summary>Verilen konuma atlar.</summary>
     Task SeekAsync(TimeSpan position, CancellationToken ct = default);
 

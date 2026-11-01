@@ -94,6 +94,7 @@ internal partial class ComparisonPanel : UserControl
         Stage.PointerPressed += OnStagePressed;
         Stage.PointerMoved += OnStageMoved;
         Stage.PointerReleased += OnStageReleased;
+        Stage.PointerCaptureLost += (_, _) => { if (_hizliTutma) TutmaKoptu(); };
 
         SeparatorGrip.PointerPressed += OnSeparatorPressed;
         SeparatorGrip.PointerMoved += OnSeparatorMoved;
@@ -548,18 +549,13 @@ internal partial class ComparisonPanel : UserControl
 
     internal void StagePress(Point at)
     {
-        _click.Press(at.X, at.Y);
+        SolBas(at);
         _panFrom = at;
     }
 
-    internal void StageMove(Point at) => _click.Move(at.X, at.Y);
+    internal void StageMove(Point at) => Sol.Oyna(at.X, at.Y);
 
-    internal ReleaseOutcome StageRelease()
-    {
-        var outcome = _click.Release();
-        if (outcome == ReleaseOutcome.Click) Strip.TogglePlay();
-        return outcome;
-    }
+    internal SolTikSonucu StageRelease() => SolBirak();
 
     private void OnStageMoved(object? sender, PointerEventArgs e)
     {
@@ -586,7 +582,7 @@ internal partial class ComparisonPanel : UserControl
         _stagePress = null;
         if (!e.GetCurrentPoint(Stage).Properties.IsLeftButtonPressed) return;
         if (TopLevel.GetTopLevel(this) is not Window { WindowState: WindowState.Normal } window) return;
-        _click.Cancel();
+        TutmaKoptu();
         StageWindowMoves++;
         if (StageMoveStarter is { } start) start(press);
         else window.BeginMoveDrag(press);
